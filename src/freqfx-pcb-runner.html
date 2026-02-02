@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>FREQ-FX: PCB Runner</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+#action-btn{display:none;position:fixed;bottom:20px;right:20px;width:64px;height:64px;border-radius:50%;background:rgba(0,255,136,0.25);border:2px solid #0f8;color:#0f8;font:bold 14px monospace;z-index:10;touch-action:manipulation}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="action-btn">DASH</button>
+<script>
+(function(){
+"use strict";
+
+var W = 240, H = 160;
+var LANE_COUNT = 3;
+var LANE_Y = [52, 84, 116];
+var LANE_H = 28;
+var PLAYER_W = 12, PLAYER_H = 10;
+var HAZARD_W = 14, HAZARD_H = 12;
+var PICKUP_W = 10, PICKUP_H = 10;
+var BASE_SPEED = 1.2;
+var MAX_SPEED = 4.0;
+var SPEED_RAMP = 0.015;
+var SPAWN_BASE = 1.2;
+var SPAWN_MIN = 0.35;
+var SPAWN_RAMP = 0.008;
+var PICKUP_CHANCE = 0.3;
+var DASH_DURATION = 0.5;
+var DASH_COOLDOWN = 2.0;
+var MAX_LIVES = 3;
+var INVULN_TIME = 1.5;
+
+var C_BG = "#0d1a0d";
+var C_TRACE = "#1a3a1a";
+var C_TRACE_HI = "#2a5a2a";
+var C_PAD = "#3a6a2a";
+var C_SIGNAL = "#00ff88";
+var C_SIGNAL_DIM = "#007744";
+var C_HAZARD = "#ff3333";
+var C_HAZARD_GLOW = "#ff6644";
+var C_PICKUP = "#ffcc00";
+var C_PICKUP_GLOW = "#ffee66";
+var C_TEXT = "#00ff88";
+var C_TEXT_DIM = "#006633";
+var C_HEART = "#ff4466";
+var C_DASH_READY = "#00ffcc";
+var C_DASH_COOL = "#444444";
+var C_LANE_LINE = "#0f2a0f";
+
+var canvas = document.getElementById("c");
+var ctx = canvas.getContext("2d");
+var actionBtn = document.getElementById("action-btn");
+canvas.width = W;
+canvas.height = H;
+
+var isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+if(isMobile) actionBtn.style.display = "block";
+
+var state = "title";
+var player = {lane:1, x:40, dashTimer:0, dashCooldown:0, invuln:0, lives:3};
+var hazards = [];
+var pickups = [];
+var particles = [];
+var bgElements = [];
+var score = 0;
+var scoreTimer = 0;
+var bestScore = parseInt(localStorage.getItem("freqfx_best")) || 0;
+var gameTime = 0;
+var spawnTimer = 0;
+var speed = BASE_SPEED;
+var titleBlink = 0;
+var lastTime = 0;
+var shakeTimer = 0;
+
+function initBG(){
+  bgElements = [];
+  for(var i=0;i<20;i++){
+    bgElements.push({x:Math.random()*W, y:Math.random()*H, w:20+Math.random()*60, h:1+Math.floor(Math.random()*2), vertical:Math.random()>0.6});
+  }
+  for(var j=0;j<12;j++){
+    bgElements.push({type:"pad", x:Math.random()*W, y:Math.random()*H, r:2+Math.floor(Math.random()*3)});
+  }
+}
+
+function resetGame(){
+  player.lane=1; player.lives=MAX_LIVES; player.dashTimer=0; player.dashCooldown=0; player.invuln=0;
+  hazards=[]; pickups=[]; particles=[];
+  score=0; scoreTimer=0; gameTime=0; spawnTimer=0; speed=BASE_SPEED; shakeTimer=0;
+  initBG();
+}
+
+function spawnHazard(){
+  var lane=Math.floor(Math.random()*LANE_COUNT);
+  hazards.push({x:W+10, lane:lane, w:HAZARD_W, h:HAZARD_H, flash:0});
+}
+
+function spawnPickup(){
+  var lane=Math.floor(Math.random()*LANE_COUNT);
+  var blocked=false;
+  for(var i=0;i<hazards.length;i++){
+    if(hazards[i].lane===lane && hazards[i].x>W-30) blocked=true;
+  }
+  if(!blocked) pickups.push({x:W+10, lane:lane, w:PICKUP_W, h:PICKUP_H, bob:Math.random()*6.28});
+}
+
+function spawnParticles(x,y,color,count){
+  for(var i=0;i<count;i++){
+    particles.push({x:x, y:y, vx:(Math.random()-0.5)*3, vy:(Math.random()-0.5)*3, life:0.3+Math.random()*0.4, color:color, size:1+Math.floor(Math.random()*2)});
+  }
+}
+
+function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by;
+}
+
+function playerRect(){
+  return {x:player.x-PLAYER_W/2, y:LANE_Y[player.lane]-PLAYER_H/2, w:PLAYER_W, h:PLAYER_H};
+}
+
+// === INPUT ===
+var inputQueue = [];
+function queueInput(a){ inputQueue.push(a); }
+
+document.addEventListener("keydown",function(e){
+  if(state==="title"){
+    if(e.code==="Enter"||e.code==="Space") queueInput("start");
+    if(e.code==="KeyH") queueInput("howto");
+  } else if(state==="howto"){
+    queueInput("back");
+  } else if(state==="playing"){
+    if(e.code==="ArrowUp"||e.code==="KeyW") queueInput("up");
+    if(e.code==="ArrowDown"||e.code==="KeyS") queueInput("down");
+    if(e.code==="Space") queueInput("dash");
+    if(e.code==="Enter") queueInput("pause");
+  } else if(state==="paused"){
+    if(e.code==="Enter") queueInput("unpause");
+  } else if(state==="gameover"){
+    if(e.code==="Enter"||e.code==="Space") queueInput("restart");
+  }
+  if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code)!==-1) e.preventDefault();
+});
+
+var touchStartX=0, touchStartY=0, touchStartTime=0, touchHandled=false;
+
+canvas.addEventListener("touchstart",function(e){
+  e.preventDefault();
+  var t=e.touches[0];
+  touchStartX=t.clientX; touchStartY=t.clientY; touchStartTime=Date.now(); touchHandled=false;
+  if(state==="title"){
+    var rect=canvas.getBoundingClientRect();
+    var sy=(t.clientY-rect.top)/rect.height*H;
+    if(sy>85&&sy<105) queueInput("start");
+    else if(sy>108&&sy<128) queueInput("howto");
+    else if(sy>130&&sy<148) queueInput("notify");
+  } else if(state==="howto"){ queueInput("back"); }
+  else if(state==="paused"){ queueInput("unpause"); }
+  else if(state==="gameover"){ queueInput("restart"); }
+},{passive:false});
+
+canvas.addEventListener("touchmove",function(e){
+  e.preventDefault();
+  if(touchHandled||state!=="playing") return;
+  var t=e.touches[0];
+  var dy=t.clientY-touchStartY;
+  if(Math.abs(dy)>20){
+    queueInput(dy<0?"up":"down");
+    touchHandled=true;
+    touchStartY=t.clientY;
+  }
+},{passive:false});
+
+canvas.addEventListener("touchend",function(e){
+  e.preventDefault();
+  if(state==="playing"&&!touchHandled){
+    if(Date.now()-touchStartTime<200) queueInput("dash");
+  }
+},{passive:false});
+
+actionBtn.addEventListener("touchstart",function(e){
+  e.preventDefault(); e.stopPropagation();
+  if(state==="playing") queueInput("dash");
+},{passive:false});
+
+function processInput(){
+  for(var i=0;i<inputQueue.length;i++){
+    var a=inputQueue[i];
+    if(state==="title"){
+      if(a==="start"){resetGame();state="playing";}
+      if(a==="howto") state="howto";
+    } else if(state==="howto"){
+      if(a==="back") state="title";
+    } else if(state==="playing"){
+      if(a==="up"&&player.lane>0) player.lane--;
+      if(a==="down"&&player.lane<LANE_COUNT-1) player.lane++;
+      if(a==="dash"&&player.dashCooldown<=0&&player.dashTimer<=0){
+        player.dashTimer=DASH_DURATION;
+        player.dashCooldown=DASH_COOLDOWN;
+        spawnParticles(player.x,LANE_Y[player.lane],C_DASH_READY,6);
+      }
+      if(a==="pause") state="paused";
+    } else if(state==="paused"){
+      if(a==="unpause") state="playing";
+    } else if(state==="gameover"){
+      if(a==="restart"){resetGame();state="playing";}
+    }
+  }
+  inputQueue=[];
+}
+
+// === UPDATE ===
+function update(dt){
+  if(state!=="playing"){ titleBlink+=dt; return; }
+
+  gameTime+=dt;
+  speed=Math.min(BASE_SPEED+gameTime*SPEED_RAMP,MAX_SPEED);
+
+  scoreTimer+=dt;
+  if(scoreTimer>=1){ scoreTimer-=1; score++; }
+
+  if(player.dashTimer>0) player.dashTimer=Math.max(0,player.dashTimer-dt);
+  if(player.dashCooldown>0) player.dashCooldown=Math.max(0,player.dashCooldown-dt);
+  if(player.invuln>0) player.invuln=Math.max(0,player.invuln-dt);
+  if(shakeTimer>0) shakeTimer=Math.max(0,shakeTimer-dt);
+
+  spawnTimer-=dt;
+  if(spawnTimer<=0){
+    spawnTimer=Math.max(SPAWN_BASE-gameTime*SPAWN_RAMP,SPAWN_MIN);
+    spawnHazard();
+    if(gameTime>15&&Math.random()<0.3) spawnHazard();
+    if(Math.random()<PICKUP_CHANCE) spawnPickup();
+  }
+
+  var pr=playerRect();
+  var isInvuln=player.invuln>0||player.dashTimer>0;
+
+  for(var i=hazards.length-1;i>=0;i--){
+    var h=hazards[i];
+    h.x-=speed*60*dt;
+    h.flash+=dt;
+    if(h.x<-20){hazards.splice(i,1);continue;}
+    if(!isInvuln && rectsOverlap(pr.x,pr.y,pr.w,pr.h,h.x-h.w/2,LANE_Y[h.lane]-h.h/2,h.w,h.h)){
+      player.lives--;
+      player.invuln=INVULN_TIME;
+      shakeTimer=0.3;
+      spawnParticles(player.x,LANE_Y[player.lane],C_HAZARD,10);
+      hazards.splice(i,1);
+      if(player.lives<=0){ gameOver(); return; }
+    }
+  }
+
+  for(var j=pickups.length-1;j>=0;j--){
+    var p=pickups[j];
+    p.x-=speed*60*dt;
+    p.bob+=dt*4;
+    if(p.x<-20){pickups.splice(j,1);continue;}
+    if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,p.x-p.w/2,LANE_Y[p.lane]-p.h/2+Math.sin(p.bob)*2,p.w,p.h)){
+      score+=10;
+      spawnParticles(p.x,LANE_Y[p.lane],C_PICKUP,8);
+      pickups.splice(j,1);
+    }
+  }
+
+  for(var k=particles.length-1;k>=0;k--){
+    var pt=particles[k];
+    pt.x+=pt.vx*60*dt; pt.y+=pt.vy*60*dt; pt.life-=dt;
+    if(pt.life<=0) particles.splice(k,1);
+  }
+
+  for(var b=0;b<bgElements.length;b++){
+    var el=bgElements[b];
+    el.x-=(el.type==="pad"?speed*20:speed*30)*dt;
+    if(el.x<-80){ el.x=W+20+Math.random()*40; el.y=Math.random()*H; }
+  }
+}
+
+function gameOver(){
+  state="gameover";
+  if(score>bestScore){
+    bestScore=score;
+    localStorage.setItem("freqfx_best",bestScore.toString());
+  }
+  try{ window.parent.postMessage({type:"FREQFX_GAME_OVER",score:score,best:bestScore},"*"); }catch(e){}
+}
+
+// === DRAW HELPERS ===
+function drawRect(x,y,w,h,color){
+  ctx.fillStyle=color;
+  ctx.fillRect(Math.floor(x),Math.floor(y),w,h);
+}
+
+function drawText(text,x,y,color,align){
+  ctx.fillStyle=color||C_TEXT;
+  ctx.textAlign=align||"left";
+  ctx.fillText(text,Math.floor(x),Math.floor(y));
+}
+
+function drawBG(){
+  drawRect(0,0,W,H,C_BG);
+  for(var i=0;i<LANE_COUNT;i++){
+    var ly=LANE_Y[i]-LANE_H/2;
+    drawRect(0,ly,W,LANE_H,i%2===0?C_TRACE:"#0f200f");
+    drawRect(0,ly,W,1,C_LANE_LINE);
+    drawRect(0,ly+LANE_H-1,W,1,C_LANE_LINE);
+  }
+  for(var j=0;j<bgElements.length;j++){
+    var el=bgElements[j];
+    if(el.type==="pad"){
+      ctx.fillStyle=C_PAD;
+      ctx.fillRect(Math.floor(el.x)-el.r,Math.floor(el.y)-el.r,el.r*2,el.r*2);
+      ctx.fillStyle=C_TRACE_HI;
+      ctx.fillRect(Math.floor(el.x)-1,Math.floor(el.y)-1,2,2);
+    } else {
+      ctx.fillStyle=C_TRACE_HI;
+      if(el.vertical) ctx.fillRect(Math.floor(el.x),Math.floor(el.y),el.h,el.w);
+      else ctx.fillRect(Math.floor(el.x),Math.floor(el.y),el.w,el.h);
+    }
+  }
+}
+
+function drawPlayer(){
+  var py=LANE_Y[player.lane], px=player.x;
+  if(player.invuln>0&&Math.floor(player.invuln*10)%2) return;
+  var c=player.dashTimer>0?C_DASH_READY:C_SIGNAL;
+  var cd=player.dashTimer>0?"#00aa88":C_SIGNAL_DIM;
+  drawRect(px-6,py-5,12,10,cd);
+  drawRect(px-5,py-4,10,8,c);
+  drawRect(px+4,py-7,2,3,c);
+  drawRect(px-3,py-2,2,2,"#000");
+  if(player.dashTimer>0){
+    drawRect(px-14,py-2,8,4,"rgba(0,255,136,0.4)");
+    drawRect(px-20,py-1,6,2,"rgba(0,255,136,0.2)");
+  } else {
+    drawRect(px-10,py-1,4,2,"rgba(0,255,136,0.3)");
+  }
+}
+
+function drawHazards(){
+  for(var i=0;i<hazards.length;i++){
+    var h=hazards[i], hx=h.x, hy=LANE_Y[h.lane];
+    var flash=Math.sin(h.flash*12)>0;
+    drawRect(hx-9,hy-8,18,16,flash?"rgba(255,50,50,0.15)":"rgba(255,50,50,0.08)");
+    drawRect(hx-7,hy-6,14,12,flash?C_HAZARD_GLOW:C_HAZARD);
+    drawRect(hx-6,hy-5,12,10,"#cc2222");
+    drawRect(hx-2,hy-5,2,4,"#fff");
+    drawRect(hx-3,hy-1,4,2,"#fff");
+    drawRect(hx,hy+1,2,4,"#fff");
+  }
+}
+
+function drawPickups(){
+  for(var i=0;i<pickups.length;i++){
+    var p=pickups[i], px=p.x, py=LANE_Y[p.lane]+Math.sin(p.bob)*2;
+    drawRect(px-5,py-4,10,8,C_PICKUP);
+    drawRect(px-4,py-3,8,6,"#cc9900");
+    drawRect(px-1,py-6,2,3,C_PICKUP_GLOW);
+    drawRect(px-1,py+3,2,3,C_PICKUP_GLOW);
+  }
+}
+
+function drawParticles(){
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    ctx.globalAlpha=Math.min(1,p.life*3);
+    drawRect(p.x,p.y,p.size,p.size,p.color);
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawHUD(){
+  drawRect(0,0,W,16,"rgba(0,0,0,0.7)");
+  for(var i=0;i<MAX_LIVES;i++){
+    var hx=4+i*14, c=i<player.lives?C_HEART:"#333";
+    drawRect(hx,3,3,3,c); drawRect(hx+4,3,3,3,c);
+    drawRect(hx,6,7,4,c); drawRect(hx+1,10,5,2,c); drawRect(hx+2,12,3,1,c);
+  }
+  drawText("SCORE:"+score,W/2,12,C_TEXT,"center");
+  drawText("HI:"+bestScore,W-4,12,C_TEXT_DIM,"right");
+
+  var dashReady=player.dashCooldown<=0&&player.dashTimer<=0;
+  drawRect(W-32,H-12,28,8,"#111");
+  var pct=dashReady?1:1-(player.dashCooldown/DASH_COOLDOWN);
+  drawRect(W-31,H-11,Math.floor(26*pct),6,dashReady?C_DASH_READY:C_DASH_COOL);
+  ctx.font="4px monospace";
+  drawText("DASH",W-31,H-14,dashReady?C_DASH_READY:C_DASH_COOL,"left");
+}
+
+function drawTitle(){
+  drawRect(0,0,W,H,C_BG);
+  for(var i=0;i<8;i++){
+    drawRect(10+i*30,22,20,1,C_TRACE_HI);
+    drawRect(20+i*30,17,1,12,C_TRACE_HI);
+  }
+  ctx.font="10px monospace";
+  drawText("FREQ-FX",W/2,42,C_TEXT,"center");
+  ctx.font="7px monospace";
+  drawText("PCB RUNNER",W/2,56,C_TEXT_DIM,"center");
+  ctx.font="5px monospace";
+  drawText("Dezert Audio",W/2,70,C_TEXT_DIM,"center");
+
+  var blink=Math.sin(titleBlink*3)>0;
+  ctx.font="6px monospace";
+  drawText("> START",W/2,96,blink?C_TEXT:C_TEXT_DIM,"center");
+  drawText("HOW TO PLAY",W/2,116,C_TEXT_DIM,"center");
+  drawText("NOTIFY ME",W/2,136,C_PICKUP,"center");
+
+  ctx.font="5px monospace";
+  drawText("BEST: "+bestScore,W/2,154,C_TEXT_DIM,"center");
+  drawText(isMobile?"TAP START":"ENTER / SPACE",W/2,80,C_TEXT_DIM,"center");
+}
+
+function drawHowTo(){
+  drawRect(0,0,W,H,C_BG);
+  ctx.font="7px monospace";
+  drawText("HOW TO PLAY",W/2,18,C_TEXT,"center");
+  ctx.font="5px monospace";
+  var lines=[
+    "You are a SIGNAL on a PCB.",
+    "Dodge ELECTRICAL PULSES!",
+    "Collect CAPACITORS +10pts.",
+    "",
+    "DESKTOP:",
+    " UP/DOWN or W/S = lane",
+    " SPACE = dash (invincible)",
+    " ENTER = pause",
+    "",
+    "MOBILE:",
+    " SWIPE UP/DOWN = lane",
+    " TAP or DASH btn = dash",
+    "",
+    "Speed increases over time.",
+    "Survive as long as you can!"
+  ];
+  for(var i=0;i<lines.length;i++) drawText(lines[i],14,32+i*8,C_TEXT_DIM,"left");
+  var blink=Math.sin(titleBlink*3)>0;
+  drawText(isMobile?"TAP TO BACK":"ANY KEY = BACK",W/2,156,blink?C_TEXT:C_TEXT_DIM,"center");
+}
+
+function drawPaused(){
+  ctx.fillStyle="rgba(0,0,0,0.6)"; ctx.fillRect(0,0,W,H);
+  ctx.font="8px monospace";
+  drawText("PAUSED",W/2,75,C_TEXT,"center");
+  ctx.font="5px monospace";
+  drawText(isMobile?"TAP TO RESUME":"ENTER = RESUME",W/2,90,C_TEXT_DIM,"center");
+}
+
+function drawGameOver(){
+  ctx.fillStyle="rgba(0,0,0,0.7)"; ctx.fillRect(0,0,W,H);
+  ctx.font="8px monospace";
+  drawText("GAME OVER",W/2,55,C_HAZARD,"center");
+  ctx.font="6px monospace";
+  drawText("SCORE: "+score,W/2,75,C_TEXT,"center");
+  drawText(score>=bestScore?"NEW BEST!":"BEST: "+bestScore,W/2,90,score>=bestScore?C_PICKUP:C_TEXT_DIM,"center");
+  ctx.font="5px monospace";
+  var blink=Math.sin(titleBlink*3)>0;
+  drawText(isMobile?"TAP TO RETRY":"ENTER / SPACE",W/2,110,blink?C_TEXT:C_TEXT_DIM,"center");
+}
+
+function draw(){
+  ctx.save();
+  if(shakeTimer>0) ctx.translate(Math.floor((Math.random()-0.5)*4),Math.floor((Math.random()-0.5)*4));
+  ctx.font="5px monospace";
+  if(state==="title") drawTitle();
+  else if(state==="howto") drawHowTo();
+  else {
+    drawBG(); drawPickups(); drawHazards(); drawPlayer(); drawParticles(); drawHUD();
+    if(state==="paused") drawPaused();
+    if(state==="gameover") drawGameOver();
+  }
+  ctx.restore();
+}
+
+// === RESIZE ===
+function resize(){
+  var scale=Math.min(window.innerWidth/W,window.innerHeight/H);
+  canvas.style.width=Math.floor(W*scale)+"px";
+  canvas.style.height=Math.floor(H*scale)+"px";
+}
+window.addEventListener("resize",resize);
+resize();
+
+// === LOOP ===
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(!lastTime) lastTime=ts;
+  var dt=Math.min((ts-lastTime)/1000,0.05);
+  lastTime=ts;
+  processInput(); update(dt); draw();
+}
+
+initBG();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
