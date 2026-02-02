@@ -7,19 +7,129 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#1a0a00;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#wrap{position:relative;display:flex;align-items:center;justify-content:center}
 canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 .mobile-btn{display:none;position:fixed;z-index:10;touch-action:manipulation;border:none;font:bold 11px monospace;border-radius:6px;opacity:0.7}
+
+/* === DOM OVERLAY === */
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:5}
+#overlay.active{pointer-events:auto}
+#overlay *{pointer-events:auto}
+.ov-hidden{display:none!important}
+
+.ov-panel{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:16px 24px;border-radius:8px;
+  background:rgba(10,5,0,0.88);
+  border:1px solid rgba(255,200,100,0.15);
+  max-width:90%;
+  text-align:center;
+}
+.ov-title{
+  font:bold 28px monospace;color:#ffcc44;
+  letter-spacing:4px;text-transform:uppercase;
+  text-shadow:0 0 12px rgba(255,200,60,0.5),0 0 24px rgba(255,150,30,0.25);
+  margin-bottom:2px;
+}
+.ov-subtitle{
+  font:bold 16px monospace;color:#886633;
+  letter-spacing:3px;text-transform:uppercase;
+}
+.ov-brand{
+  font:12px monospace;color:#cc9955;letter-spacing:2px;margin-bottom:8px;
+}
+.ov-best{
+  font:11px monospace;color:#886633;letter-spacing:1px;margin-bottom:4px;
+}
+.ov-btn{
+  display:block;width:180px;padding:10px 0;margin:3px 0;
+  font:bold 14px monospace;letter-spacing:2px;text-transform:uppercase;
+  border:1px solid rgba(255,200,100,0.3);border-radius:4px;
+  background:rgba(255,200,100,0.08);color:#ffcc44;
+  cursor:pointer;transition:background 0.15s,border-color 0.15s;
+}
+.ov-btn:hover,.ov-btn:active{
+  background:rgba(255,200,100,0.2);border-color:rgba(255,200,100,0.6);
+}
+.ov-btn-alt{color:#ffaa44;border-color:rgba(255,170,68,0.3)}
+.ov-btn-alt:hover,.ov-btn-alt:active{
+  background:rgba(255,170,68,0.15);border-color:rgba(255,170,68,0.5);
+}
+
+.ov-heading{
+  font:bold 18px monospace;color:#ffcc44;letter-spacing:3px;
+  text-shadow:0 0 8px rgba(255,200,60,0.4);margin-bottom:6px;
+}
+.ov-text{
+  font:12px monospace;color:#aa8855;line-height:1.6;
+  text-align:left;white-space:pre-line;letter-spacing:0.5px;
+}
+.ov-text b{color:#ddaa55}
+.ov-back{
+  font:11px monospace;color:#886633;letter-spacing:1px;
+  margin-top:10px;cursor:pointer;border:none;background:none;
+  text-decoration:underline;text-underline-offset:3px;
+}
+.ov-back:hover{color:#ffcc44}
+
+/* Game over specific */
+.ov-go-title{
+  font:bold 24px monospace;color:#ff4444;letter-spacing:4px;
+  text-shadow:0 0 12px rgba(255,50,50,0.5);
+}
+.ov-go-score{font:bold 18px monospace;color:#ffcc44;letter-spacing:2px}
+.ov-go-best{font:13px monospace;color:#ffcc00;letter-spacing:1px}
+.ov-go-best-dim{font:13px monospace;color:#886633;letter-spacing:1px}
+
+/* Pause */
+.ov-pause-title{
+  font:bold 22px monospace;color:#ffcc44;letter-spacing:4px;
+  text-shadow:0 0 10px rgba(255,200,60,0.4);
+}
+.ov-pause-hint{font:12px monospace;color:#886633;letter-spacing:1px;margin-top:4px}
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<!-- Mobile controls injected dynamically -->
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="overlay" class="active">
+    <!-- Title screen -->
+    <div id="scr-title" class="ov-panel">
+      <div class="ov-title">FREQ-FX</div>
+      <div class="ov-subtitle">PCB Runner</div>
+      <div class="ov-brand">Dezert Audio</div>
+      <div class="ov-best" id="title-best">BEST: 0</div>
+      <button class="ov-btn" id="btn-start">START</button>
+      <button class="ov-btn" id="btn-howto">HOW TO PLAY</button>
+      <button class="ov-btn ov-btn-alt" id="btn-notify">NOTIFY ME</button>
+    </div>
+    <!-- How to play -->
+    <div id="scr-howto" class="ov-panel ov-hidden">
+      <div class="ov-heading">HOW TO PLAY</div>
+      <div class="ov-text" id="howto-text"></div>
+      <button class="ov-back" id="btn-back">BACK</button>
+    </div>
+    <!-- Paused -->
+    <div id="scr-paused" class="ov-panel ov-hidden">
+      <div class="ov-pause-title">PAUSED</div>
+      <button class="ov-btn" id="btn-resume">RESUME</button>
+      <div class="ov-pause-hint" id="pause-hint"></div>
+    </div>
+    <!-- Game over -->
+    <div id="scr-gameover" class="ov-panel ov-hidden">
+      <div class="ov-go-title">GAME OVER</div>
+      <div class="ov-go-score" id="go-score">SCORE: 0</div>
+      <div id="go-best"></div>
+      <button class="ov-btn" id="btn-retry">RETRY</button>
+    </div>
+  </div>
+</div>
 <script>
 (function(){
 "use strict";
 
 var W=240,H=160;
-var GROUND_Y=130; // ground surface Y
+var GROUND_Y=130;
 var GRAVITY=600;
 var JUMP_VEL=-210;
 var MOVE_ACCEL=400;
@@ -32,18 +142,18 @@ var DASH_DURATION=0.35;
 var DASH_COOLDOWN=2.0;
 var MAX_LIVES=3;
 var INVULN_TIME=1.5;
-var BASE_SCROLL=50;
-var MAX_SCROLL=130;
-var SCROLL_RAMP=0.4;
 var SPAWN_BASE=1.6;
 var SPAWN_MIN=0.5;
 var SPAWN_RAMP=0.006;
 var PICKUP_CHANCE=0.35;
 var PLAYER_W=12,PLAYER_H=16;
+// Camera dead-zone: player can be within this range without camera moving
+var CAM_LEFT_MARGIN=70;  // screen-space X where cam starts pushing right
+var CAM_RIGHT_MARGIN=170; // screen-space X where cam starts pushing left
+// Distance scoring: 1 point per this many pixels of forward progress
+var DIST_PER_POINT=10;
 
 // Desert palette
-var C_SKY_TOP="#1a0533";
-var C_SKY_BOT="#cc6622";
 var C_SUN="#ffdd44";
 var C_SUN_GLOW="rgba(255,200,60,0.3)";
 var C_DUNE_FAR="#884422";
@@ -59,7 +169,6 @@ var C_ROBOT_LIGHT="#5588cc";
 var C_VISOR="#ff44aa";
 var C_VISOR_HI="#ff88cc";
 var C_HAZARD="#ff3333";
-var C_HAZARD_GLOW="#ff6644";
 var C_SPARK="#ffff88";
 var C_PICKUP="#44ffcc";
 var C_PICKUP_GLOW="#88ffee";
@@ -72,9 +181,64 @@ var C_HUD_BG="rgba(0,0,0,0.55)";
 
 var canvas=document.getElementById("c");
 var ctx=canvas.getContext("2d");
+var wrap=document.getElementById("wrap");
+var overlay=document.getElementById("overlay");
 canvas.width=W;canvas.height=H;
 
 var isMobile="ontouchstart"in window||navigator.maxTouchPoints>0;
+
+// === DOM OVERLAY REFS ===
+var scrTitle=document.getElementById("scr-title");
+var scrHowto=document.getElementById("scr-howto");
+var scrPaused=document.getElementById("scr-paused");
+var scrGameover=document.getElementById("scr-gameover");
+var titleBest=document.getElementById("title-best");
+var howtoText=document.getElementById("howto-text");
+var pauseHint=document.getElementById("pause-hint");
+var goScore=document.getElementById("go-score");
+var goBest=document.getElementById("go-best");
+
+// Populate how-to text
+var desktopHelp=
+  "You are a robot in the desert.\n"+
+  "Run forward, dodge hazards, collect energy cells!\n\n"+
+  "<b>CONTROLS:</b>\n"+
+  "LEFT / RIGHT  or  A / D  =  Run\n"+
+  "UP / W / SPACE  =  Jump\n"+
+  "SHIFT  =  Dash (invincible)\n"+
+  "ENTER  =  Pause\n\n"+
+  "<b>SCORING:</b>\n"+
+  "Distance traveled  =  +1 per 10px forward\n"+
+  "Energy cells  =  +10 each\n"+
+  "Standing still doesn't score!\n\n"+
+  "Hazards ramp up over time. Good luck.";
+var mobileHelp=
+  "You are a robot in the desert.\n"+
+  "Run forward, dodge hazards, collect energy cells!\n\n"+
+  "<b>CONTROLS:</b>\n"+
+  "On-screen buttons:\n"+
+  "\u25C0 \u25B6  =  Run left / right\n"+
+  "JUMP  =  Jump\n"+
+  "DASH  =  Dash (invincible)\n\n"+
+  "<b>SCORING:</b>\n"+
+  "Distance traveled  =  +1 per 10px forward\n"+
+  "Energy cells  =  +10 each\n"+
+  "Standing still doesn't score!\n\n"+
+  "Hazards ramp up over time. Good luck.";
+howtoText.innerHTML=isMobile?mobileHelp:desktopHelp;
+pauseHint.textContent=isMobile?"Tap RESUME":"ENTER = RESUME";
+
+function showScreen(name){
+  scrTitle.classList.add("ov-hidden");
+  scrHowto.classList.add("ov-hidden");
+  scrPaused.classList.add("ov-hidden");
+  scrGameover.classList.add("ov-hidden");
+  if(name==="title"){scrTitle.classList.remove("ov-hidden");overlay.classList.add("active");}
+  else if(name==="howto"){scrHowto.classList.remove("ov-hidden");overlay.classList.add("active");}
+  else if(name==="paused"){scrPaused.classList.remove("ov-hidden");overlay.classList.add("active");}
+  else if(name==="gameover"){scrGameover.classList.remove("ov-hidden");overlay.classList.add("active");}
+  else{overlay.classList.remove("active");} // "playing" = hide overlay
+}
 
 // Mobile buttons
 var mobileButtons=[];
@@ -102,8 +266,9 @@ if(isMobile){
   });
 }
 
+// === GAME STATE ===
 var state="title";
-var cam={x:0}; // camera world X offset
+var cam={x:0};
 var player={x:60,y:GROUND_Y,vx:0,vy:0,onGround:true,
   coyoteTimer:0,jumpBufferTimer:0,
   dashTimer:0,dashCooldown:0,dashDir:1,
@@ -111,18 +276,18 @@ var player={x:60,y:GROUND_Y,vx:0,vy:0,onGround:true,
   animFrame:0,animTimer:0,facing:1};
 var hazards=[];
 var pickups=[];
-var obstacles=[]; // ground rocks
+var obstacles=[];
 var particles=[];
 var dunesFar=[],dunesMid=[];
 var sandSpecs=[];
-var score=0,scoreTimer=0;
+var score=0,maxX=0; // maxX tracks furthest rightward position for distance scoring
 var bestScore=parseInt(localStorage.getItem("freqfx_best"))||0;
-var gameTime=0,spawnTimer=0,scrollSpeed=BASE_SCROLL;
-var titleBlink=0,lastTime=0,shakeTimer=0;
+var gameTime=0,spawnTimer=0;
+var lastTime=0,shakeTimer=0;
 var shimmerOffset=0;
-
-// Held keys for continuous movement
 var held={left:false,right:false,jump:false,dash:false};
+
+titleBest.textContent="BEST: "+bestScore;
 
 // === INIT ===
 function initWorld(){
@@ -143,21 +308,20 @@ function resetGame(){
   player.lives=MAX_LIVES;player.animFrame=0;player.animTimer=0;player.facing=1;
   cam.x=0;
   hazards=[];pickups=[];obstacles=[];particles=[];
-  score=0;scoreTimer=0;gameTime=0;spawnTimer=0;scrollSpeed=BASE_SCROLL;shakeTimer=0;
+  score=0;maxX=60;gameTime=0;spawnTimer=0;shakeTimer=0;
   initWorld();
-  // Pre-place some obstacles
   for(var i=0;i<5;i++){
     obstacles.push({x:200+i*80+Math.random()*40,w:10+Math.floor(Math.random()*6),h:8+Math.floor(Math.random()*6)});
   }
 }
 
 // === SPAWNING ===
-function worldRight(){ return cam.x+W+40; }
+function worldRight(){return cam.x+W+40;}
 
 function spawnHazard(){
   var wx=worldRight()+Math.random()*60;
   var flying=Math.random()>0.4;
-  var hy=flying? GROUND_Y-20-Math.random()*30 : GROUND_Y;
+  var hy=flying?GROUND_Y-20-Math.random()*30:GROUND_Y;
   hazards.push({x:wx,y:hy,w:12,h:12,flash:0,flying:flying});
 }
 
@@ -169,7 +333,6 @@ function spawnPickup(){
 
 function spawnObstacle(){
   var wx=worldRight()+Math.random()*40;
-  // check no overlap with recent obstacles
   for(var i=0;i<obstacles.length;i++){
     if(Math.abs(obstacles[i].x-wx)<30) return;
   }
@@ -189,24 +352,23 @@ function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
 // === INPUT ===
 var keys={};
 
+function startGame(){resetGame();state="playing";showScreen("playing");}
+
 document.addEventListener("keydown",function(e){
-  if(keys[e.code]) {e.preventDefault();return;} // ignore repeats
+  if(keys[e.code]){e.preventDefault();return;}
   keys[e.code]=true;
   if(state==="title"){
-    if(e.code==="Enter"||e.code==="Space"){resetGame();state="playing";}
-    if(e.code==="KeyH") state="howto";
-  } else if(state==="howto"){
-    state="title";
+    if(e.code==="Enter"||e.code==="Space") startGame();
   } else if(state==="playing"){
     if(e.code==="ArrowLeft"||e.code==="KeyA") held.left=true;
     if(e.code==="ArrowRight"||e.code==="KeyD") held.right=true;
     if(e.code==="ArrowUp"||e.code==="KeyW"||e.code==="Space"){held.jump=true;player.jumpBufferTimer=JUMP_BUFFER_MS;}
     if(e.code==="ShiftLeft"||e.code==="ShiftRight") held.dash=true;
-    if(e.code==="Enter") state="paused";
+    if(e.code==="Enter"){state="paused";showScreen("paused");}
   } else if(state==="paused"){
-    if(e.code==="Enter") state="playing";
+    if(e.code==="Enter"){state="playing";showScreen("playing");}
   } else if(state==="gameover"){
-    if(e.code==="Enter"||e.code==="Space"){resetGame();state="playing";}
+    if(e.code==="Enter"||e.code==="Space") startGame();
   }
   if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code)!==-1) e.preventDefault();
 });
@@ -219,18 +381,13 @@ document.addEventListener("keyup",function(e){
   if(e.code==="ShiftLeft"||e.code==="ShiftRight") held.dash=false;
 });
 
-// Touch for title/menu
-canvas.addEventListener("touchstart",function(e){
-  e.preventDefault();
-  var t=e.touches[0],rect=canvas.getBoundingClientRect();
-  var sy=(t.clientY-rect.top)/rect.height*H;
-  if(state==="title"){
-    if(sy>85&&sy<105){resetGame();state="playing";}
-    else if(sy>108&&sy<128) state="howto";
-  } else if(state==="howto") state="title";
-  else if(state==="paused") state="playing";
-  else if(state==="gameover"){resetGame();state="playing";}
-},{passive:false});
+// DOM button handlers
+document.getElementById("btn-start").addEventListener("click",function(){startGame();});
+document.getElementById("btn-howto").addEventListener("click",function(){showScreen("howto");});
+document.getElementById("btn-notify").addEventListener("click",function(){/* placeholder */});
+document.getElementById("btn-back").addEventListener("click",function(){showScreen("title");});
+document.getElementById("btn-resume").addEventListener("click",function(){state="playing";showScreen("playing");});
+document.getElementById("btn-retry").addEventListener("click",function(){startGame();});
 
 // Mobile button events
 if(isMobile){
@@ -250,7 +407,7 @@ if(isMobile){
       if(mb.id==="mj") held.jump=false;
       if(mb.id==="md") held.dash=false;
     },{passive:false});
-    mb.el.addEventListener("touchcancel",function(e){
+    mb.el.addEventListener("touchcancel",function(){
       if(mb.id==="ml") held.left=false;
       if(mb.id==="mr") held.right=false;
       if(mb.id==="mj") held.jump=false;
@@ -261,15 +418,10 @@ if(isMobile){
 
 // === UPDATE ===
 function update(dt){
-  if(state!=="playing"){titleBlink+=dt;return;}
+  if(state!=="playing") return;
 
   gameTime+=dt;
-  scrollSpeed=Math.min(BASE_SCROLL+gameTime*SCROLL_RAMP,MAX_SCROLL);
   shimmerOffset+=dt;
-
-  // Score
-  scoreTimer+=dt;
-  if(scoreTimer>=1){scoreTimer-=1;score++;}
 
   // Timers
   if(player.dashTimer>0) player.dashTimer=Math.max(0,player.dashTimer-dt);
@@ -287,7 +439,7 @@ function update(dt){
     spawnParticles(player.x,player.y-8,C_DASH_READY,6);
   }
 
-  // Horizontal movement
+  // Horizontal movement — NO auto-scroll
   var isDashing=player.dashTimer>0;
   if(isDashing){
     player.vx=DASH_SPEED*player.dashDir;
@@ -295,52 +447,50 @@ function update(dt){
     if(held.left){player.vx=Math.max(player.vx-MOVE_ACCEL*dt,-MAX_RUN);player.facing=-1;}
     else if(held.right){player.vx=Math.min(player.vx+MOVE_ACCEL*dt,MAX_RUN);player.facing=1;}
     else {
-      // friction
       if(player.vx>0) player.vx=Math.max(0,player.vx-MOVE_DECEL*dt);
       else if(player.vx<0) player.vx=Math.min(0,player.vx+MOVE_DECEL*dt);
     }
   }
 
-  // Auto-scroll: world moves right, player stays relatively in view
-  var autoScroll=scrollSpeed*dt;
-  cam.x+=autoScroll;
-
   // Apply velocity
   player.x+=player.vx*dt;
+  // Clamp: can't go below world X=0
+  if(player.x<16) player.x=16;
 
-  // Clamp player to camera bounds (can go slightly left but not off screen)
-  var minX=cam.x+16;
-  var maxX=cam.x+W-16;
-  if(player.x<minX) player.x=minX;
-  if(player.x>maxX) player.x=maxX;
+  // === CAMERA with dead-zone ===
+  var screenX=player.x-cam.x;
+  if(screenX>CAM_RIGHT_MARGIN) cam.x=player.x-CAM_RIGHT_MARGIN;
+  else if(screenX<CAM_LEFT_MARGIN) cam.x=player.x-CAM_LEFT_MARGIN;
+  if(cam.x<0) cam.x=0;
+
+  // === DISTANCE-BASED SCORING ===
+  if(player.x>maxX){
+    var gained=Math.floor((player.x-maxX)/DIST_PER_POINT);
+    if(gained>0){
+      score+=gained;
+      maxX=maxX+gained*DIST_PER_POINT;
+    }
+  }
 
   // Gravity
-  if(!player.onGround){
-    player.vy+=GRAVITY*dt;
-  }
+  if(!player.onGround) player.vy+=GRAVITY*dt;
   player.y+=player.vy*dt;
 
-  // Ground collision
+  // Ground + obstacle collision
   var groundLevel=GROUND_Y;
-  // Check obstacle collision (standing on top)
   var onObstacle=false;
   for(var oi=0;oi<obstacles.length;oi++){
     var ob=obstacles[oi];
     var obTop=GROUND_Y-ob.h;
-    // can land on top
-    if(player.vy>=0 && player.x>ob.x-2 && player.x<ob.x+ob.w+2){
-      if(player.y>=obTop && player.y-player.vy*dt<=obTop+4){
-        groundLevel=obTop;
-        onObstacle=true;
-        break;
+    if(player.vy>=0&&player.x>ob.x-2&&player.x<ob.x+ob.w+2){
+      if(player.y>=obTop&&player.y-player.vy*dt<=obTop+4){
+        groundLevel=obTop;onObstacle=true;break;
       }
     }
-    // side collision (push player up if running into it)
-    var px1=player.x-PLAYER_W/2, px2=player.x+PLAYER_W/2;
-    var py1=player.y-PLAYER_H, py2=player.y;
+    var px1=player.x-PLAYER_W/2;
+    var py1=player.y-PLAYER_H;
     if(rectsOverlap(px1,py1,PLAYER_W,PLAYER_H,ob.x,obTop,ob.w,ob.h)){
       if(!onObstacle){
-        // push out horizontally
         if(player.vx>0) player.x=ob.x-PLAYER_W/2-1;
         else if(player.vx<0) player.x=ob.x+ob.w+PLAYER_W/2+1;
       }
@@ -348,41 +498,32 @@ function update(dt){
   }
 
   if(player.y>=groundLevel){
-    player.y=groundLevel;
-    player.vy=0;
+    player.y=groundLevel;player.vy=0;
     if(!player.onGround) player.coyoteTimer=COYOTE_MS;
     player.onGround=true;
   } else {
-    if(player.onGround && player.vy>=0) player.coyoteTimer=COYOTE_MS;
+    if(player.onGround&&player.vy>=0) player.coyoteTimer=COYOTE_MS;
     player.onGround=false;
   }
 
-  // Jump (with coyote time + buffer)
+  // Jump
   var canJump=player.onGround||player.coyoteTimer>0;
   if(player.jumpBufferTimer>0&&canJump){
-    player.vy=JUMP_VEL;
-    player.onGround=false;
-    player.coyoteTimer=0;
-    player.jumpBufferTimer=0;
+    player.vy=JUMP_VEL;player.onGround=false;
+    player.coyoteTimer=0;player.jumpBufferTimer=0;
     spawnParticles(player.x,player.y,"#ddaa66",4);
   }
-
-  // Variable jump height: release early = cut velocity
-  if(!held.jump&&player.vy<JUMP_VEL*0.4){
-    player.vy=JUMP_VEL*0.4;
-  }
+  // Variable jump height
+  if(!held.jump&&player.vy<JUMP_VEL*0.4) player.vy=JUMP_VEL*0.4;
 
   // Animation
-  if(!player.onGround){
-    player.animFrame=3; // jump frame
-  } else if(Math.abs(player.vx)>10){
+  if(!player.onGround){player.animFrame=3;}
+  else if(Math.abs(player.vx)>10){
     player.animTimer+=dt;
     if(player.animTimer>0.12){player.animTimer=0;player.animFrame=(player.animFrame+1)%3;}
-  } else {
-    player.animFrame=0;player.animTimer=0;
-  }
+  } else {player.animFrame=0;player.animTimer=0;}
 
-  // Spawning
+  // Spawning (ramps with gameTime, spawns ahead of camera)
   spawnTimer-=dt;
   if(spawnTimer<=0){
     spawnTimer=Math.max(SPAWN_BASE-gameTime*SPAWN_RAMP,SPAWN_MIN);
@@ -398,17 +539,17 @@ function update(dt){
 
   for(var i=hazards.length-1;i>=0;i--){
     var hz=hazards[i];
-    if(!hz.flying) hz.x-=scrollSpeed*0.3*dt; // ground hazards drift slightly
     hz.flash+=dt;
-    // flying hazards move toward player slightly
-    if(hz.flying) hz.x-=scrollSpeed*0.8*dt;
-    if(hz.x<cam.x-40){hazards.splice(i,1);continue;}
+    // Flying drones drift slowly toward player
+    if(hz.flying){
+      var dx=player.x-hz.x;
+      hz.x+=Math.sign(dx)*20*dt;
+    }
+    if(hz.x<cam.x-60||hz.x>cam.x+W+120){hazards.splice(i,1);continue;}
     var hx=hz.x-hz.w/2,hy=hz.y-hz.h;
     if(!isInvuln&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,hx,hy,hz.w,hz.h)){
-      player.lives--;
-      player.invuln=INVULN_TIME;
-      shakeTimer=0.3;
-      spawnParticles(hz.x,hz.y-6,C_HAZARD,10);
+      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+      spawnParticles(hz.x,hz.y-6,"#ff3333",10);
       hazards.splice(i,1);
       if(player.lives<=0){gameOver();return;}
     }
@@ -418,18 +559,16 @@ function update(dt){
   for(var j=pickups.length-1;j>=0;j--){
     var pk=pickups[j];
     pk.bob+=dt*4;
-    if(pk.x<cam.x-40){pickups.splice(j,1);continue;}
+    if(pk.x<cam.x-60||pk.x>cam.x+W+120){pickups.splice(j,1);continue;}
     var pkY=pk.y+Math.sin(pk.bob)*3;
     if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,pk.x-pk.w/2,pkY-pk.h/2,pk.w,pk.h)){
-      score+=10;
-      spawnParticles(pk.x,pkY,C_PICKUP,8);
-      pickups.splice(j,1);
+      score+=10;spawnParticles(pk.x,pkY,C_PICKUP,8);pickups.splice(j,1);
     }
   }
 
-  // Cleanup obstacles behind camera
+  // Cleanup far-away obstacles
   for(var k=obstacles.length-1;k>=0;k--){
-    if(obstacles[k].x+obstacles[k].w<cam.x-20) obstacles.splice(k,1);
+    if(obstacles[k].x+obstacles[k].w<cam.x-100) obstacles.splice(k,1);
   }
 
   // Particles
@@ -439,232 +578,155 @@ function update(dt){
     if(pt.life<=0) particles.splice(m,1);
   }
 
-  // Scroll sand specs
+  // Recycle sand specs near camera
   for(var s=0;s<sandSpecs.length;s++){
-    sandSpecs[s].x-=scrollSpeed*0.8*dt;
-    if(sandSpecs[s].x<cam.x-20){
-      sandSpecs[s].x=cam.x+W+Math.random()*40;
-      sandSpecs[s].y=GROUND_Y+2+Math.random()*25;
-    }
+    var ss=sandSpecs[s];
+    if(ss.x<cam.x-40){ss.x=cam.x+W+Math.random()*80;ss.y=GROUND_Y+2+Math.random()*25;}
+    else if(ss.x>cam.x+W+100){ss.x=cam.x-20-Math.random()*40;ss.y=GROUND_Y+2+Math.random()*25;}
   }
 }
 
 function gameOver(){
   state="gameover";
   if(score>bestScore){bestScore=score;localStorage.setItem("freqfx_best",bestScore.toString());}
+  goScore.textContent="SCORE: "+score;
+  if(score>=bestScore){
+    goBest.className="ov-go-best";goBest.textContent="NEW BEST!";
+  } else {
+    goBest.className="ov-go-best-dim";goBest.textContent="BEST: "+bestScore;
+  }
+  titleBest.textContent="BEST: "+bestScore;
+  showScreen("gameover");
   try{window.parent.postMessage({type:"FREQFX_GAME_OVER",score:score,best:bestScore},"*");}catch(e){}
 }
 
 // === DRAW ===
 function F(v){return Math.floor(v);}
-
 function drawRect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(F(x),F(y),w,h);}
 function drawText(t,x,y,c,a){ctx.fillStyle=c||C_TEXT;ctx.textAlign=a||"left";ctx.fillText(t,F(x),F(y));}
-
-// World-to-screen
 function wx(worldX){return worldX-cam.x;}
 
 function drawSkyAndSun(){
-  // Sky gradient (manual pixel bands)
   var bands=16;
   for(var i=0;i<bands;i++){
     var t=i/bands;
     var r=F(26+t*178),g=F(5+t*97),b=F(51-t*17);
     drawRect(0,i*(GROUND_Y/bands),W,Math.ceil(GROUND_Y/bands),"rgb("+r+","+g+","+b+")");
   }
-  // Sun
   var sunX=W-40,sunY=25;
-  ctx.fillStyle=C_SUN_GLOW;
-  ctx.beginPath();ctx.arc(sunX,sunY,16,0,6.29);ctx.fill();
-  ctx.fillStyle=C_SUN;
-  ctx.beginPath();ctx.arc(sunX,sunY,8,0,6.29);ctx.fill();
-  ctx.fillStyle="#ffee88";
-  ctx.beginPath();ctx.arc(sunX,sunY,5,0,6.29);ctx.fill();
+  ctx.fillStyle=C_SUN_GLOW;ctx.beginPath();ctx.arc(sunX,sunY,16,0,6.29);ctx.fill();
+  ctx.fillStyle=C_SUN;ctx.beginPath();ctx.arc(sunX,sunY,8,0,6.29);ctx.fill();
+  ctx.fillStyle="#ffee88";ctx.beginPath();ctx.arc(sunX,sunY,5,0,6.29);ctx.fill();
 }
 
 function drawDunes(){
-  // Far dunes (slow parallax)
-  ctx.fillStyle=C_DUNE_FAR;
   for(var i=0;i<dunesFar.length;i++){
     var d=dunesFar[i];
     var sx=((d.x-cam.x*0.15)%W+W)%W-20;
     drawRect(sx,GROUND_Y-d.h-8,d.w,d.h+8,C_DUNE_FAR);
   }
-  // Mid dunes
-  ctx.fillStyle=C_DUNE_MID;
   for(var j=0;j<dunesMid.length;j++){
     var dm=dunesMid[j];
     var smx=((dm.x-cam.x*0.3)%W+W)%W-20;
     drawRect(smx,GROUND_Y-dm.h-3,dm.w,dm.h+3,C_DUNE_MID);
   }
-  // Near dune strip
   drawRect(0,GROUND_Y-4,W,4,C_DUNE_NEAR);
 }
 
 function drawGround(){
-  // Main ground
   drawRect(0,GROUND_Y,W,H-GROUND_Y,C_GROUND);
   drawRect(0,GROUND_Y,W,2,C_GROUND_LINE);
-  // Dark layer
   drawRect(0,GROUND_Y+10,W,H-GROUND_Y-10,C_GROUND_DARK);
-  // Sand specks
   for(var i=0;i<sandSpecs.length;i++){
-    var s=sandSpecs[i];
-    var sx=wx(s.x);
+    var s=sandSpecs[i],sx=wx(s.x);
     if(sx>-2&&sx<W+2) drawRect(sx,s.y,1,1,C_SAND_SPEC);
   }
-  // Heat shimmer (subtle scanline wobble near ground)
   if(Math.sin(shimmerOffset*2)>0.5){
-    ctx.globalAlpha=0.06;
-    drawRect(0,GROUND_Y-8,W,4,"#fff");
-    ctx.globalAlpha=1;
+    ctx.globalAlpha=0.06;drawRect(0,GROUND_Y-8,W,4,"#fff");ctx.globalAlpha=1;
   }
 }
 
 function drawObstacles(){
   for(var i=0;i<obstacles.length;i++){
-    var ob=obstacles[i];
-    var sx=wx(ob.x);
+    var ob=obstacles[i],sx=wx(ob.x);
     if(sx<-20||sx>W+20) continue;
     var top=GROUND_Y-ob.h;
-    // Rock/crate shape
     drawRect(sx,top,ob.w,ob.h,"#996644");
     drawRect(sx+1,top+1,ob.w-2,ob.h-2,"#887755");
-    drawRect(sx+1,top+1,ob.w-2,2,"#aa8866"); // highlight
-    drawRect(sx,top,1,ob.h,"#776644"); // left shadow
+    drawRect(sx+1,top+1,ob.w-2,2,"#aa8866");
+    drawRect(sx,top,1,ob.h,"#776644");
   }
 }
 
-// Robot sprite (procedural pixel art)
 function drawRobot(){
   var sx=wx(player.x),sy=player.y;
   if(player.invuln>0&&F(player.invuln*10)%2) return;
-
-  var f=player.facing;
-  var frame=player.animFrame;
+  var f=player.facing,frame=player.animFrame;
   var isDashing=player.dashTimer>0;
   var body=isDashing?C_DASH_READY:C_ROBOT_BODY;
   var dark=isDashing?"#22aa88":C_ROBOT_DARK;
   var light=isDashing?"#66ddbb":C_ROBOT_LIGHT;
-  var visor=C_VISOR;
-
-  // Feet offset for run animation
   var lfoot=0,rfoot=0;
-  if(frame===1){lfoot=-2;rfoot=1;}
-  else if(frame===2){lfoot=1;rfoot=-2;}
-  if(frame===3){lfoot=0;rfoot=0;} // jump: legs together, tucked
-
+  if(frame===1){lfoot=-2;rfoot=1;}else if(frame===2){lfoot=1;rfoot=-2;}
   var bx=F(sx),by=F(sy);
-
-  // === HELMET (top) ===
-  drawRect(bx-5,by-16,10,6,dark);       // helmet outer
-  drawRect(bx-4,by-15,8,4,body);        // helmet inner
-  drawRect(bx-4,by-16,8,1,"#aabbcc");   // helmet top shine
-
-  // === VISOR ===
-  if(f===1){
-    drawRect(bx,by-14,3,3,visor);
-    drawRect(bx+1,by-14,1,1,C_VISOR_HI); // highlight
-  } else {
-    drawRect(bx-3,by-14,3,3,visor);
-    drawRect(bx-2,by-14,1,1,C_VISOR_HI);
-  }
-
-  // === BODY (torso) ===
-  drawRect(bx-5,by-10,10,7,dark);       // body outer
-  drawRect(bx-4,by-9,8,5,body);         // body main
-  drawRect(bx-3,by-8,6,3,light);        // chest plate highlight
-
-  // === ARMS ===
+  drawRect(bx-5,by-16,10,6,dark);
+  drawRect(bx-4,by-15,8,4,body);
+  drawRect(bx-4,by-16,8,1,"#aabbcc");
+  if(f===1){drawRect(bx,by-14,3,3,C_VISOR);drawRect(bx+1,by-14,1,1,C_VISOR_HI);}
+  else{drawRect(bx-3,by-14,3,3,C_VISOR);drawRect(bx-2,by-14,1,1,C_VISOR_HI);}
+  drawRect(bx-5,by-10,10,7,dark);
+  drawRect(bx-4,by-9,8,5,body);
+  drawRect(bx-3,by-8,6,3,light);
   if(frame===3){
-    // Jump: arms up
-    drawRect(bx-7,by-13,2,5,dark);
-    drawRect(bx+5,by-13,2,5,dark);
+    drawRect(bx-7,by-13,2,5,dark);drawRect(bx+5,by-13,2,5,dark);
+    drawRect(bx-4,by-3,3,2,dark);drawRect(bx+1,by-3,3,2,dark);
   } else {
     var armOff=frame===1?-1:frame===2?1:0;
-    drawRect(bx-7,by-9+armOff,2,5,dark);
-    drawRect(bx+5,by-9-armOff,2,5,dark);
-  }
-
-  // === LEGS ===
-  if(frame===3){
-    // Jump: legs tucked
-    drawRect(bx-4,by-3,3,2,dark);
-    drawRect(bx+1,by-3,3,2,dark);
-  } else {
+    drawRect(bx-7,by-9+armOff,2,5,dark);drawRect(bx+5,by-9-armOff,2,5,dark);
     drawRect(bx-4,by-3+lfoot,3,3+Math.abs(lfoot),dark);
     drawRect(bx+1,by-3+rfoot,3,3+Math.abs(rfoot),dark);
-    // Feet
-    drawRect(bx-5,by+lfoot,4,1,"#555");
-    drawRect(bx+1,by+rfoot,4,1,"#555");
+    drawRect(bx-5,by+lfoot,4,1,"#555");drawRect(bx+1,by+rfoot,4,1,"#555");
   }
-
-  // Dash trail
   if(isDashing){
-    ctx.globalAlpha=0.4;
-    drawRect(bx-f*8-4,by-10,8,7,C_DASH_READY);
-    ctx.globalAlpha=0.2;
-    drawRect(bx-f*16-3,by-8,6,4,C_DASH_READY);
+    ctx.globalAlpha=0.4;drawRect(bx-f*8-4,by-10,8,7,C_DASH_READY);
+    ctx.globalAlpha=0.2;drawRect(bx-f*16-3,by-8,6,4,C_DASH_READY);
     ctx.globalAlpha=1;
   }
 }
 
 function drawHazards(){
   for(var i=0;i<hazards.length;i++){
-    var hz=hazards[i];
-    var sx=wx(hz.x),sy=hz.y;
+    var hz=hazards[i],sx=wx(hz.x),sy=hz.y;
     if(sx<-20||sx>W+20) continue;
     var fl=Math.sin(hz.flash*12)>0;
-
     if(hz.flying){
-      // Spark drone: small hovering device
       drawRect(sx-7,sy-12,14,8,fl?"#553333":"#442222");
       drawRect(sx-6,sy-11,12,6,"#663333");
-      // Eye
       drawRect(sx-2,sy-10,4,3,fl?C_SPARK:C_HAZARD);
-      // Spark underneath
-      if(fl){
-        drawRect(sx-1,sy-4,2,4,C_SPARK);
-        drawRect(sx,sy-2,1,3,"#fff");
-      }
-      // Propeller dots
+      if(fl){drawRect(sx-1,sy-4,2,4,C_SPARK);drawRect(sx,sy-2,1,3,"#fff");}
       var pp=Math.sin(hz.flash*20)*3;
-      drawRect(sx-5+pp,sy-14,2,2,"#888");
-      drawRect(sx+3-pp,sy-14,2,2,"#888");
+      drawRect(sx-5+pp,sy-14,2,2,"#888");drawRect(sx+3-pp,sy-14,2,2,"#888");
     } else {
-      // Ground spark gate: two posts with electricity
-      drawRect(sx-6,sy-14,3,14,"#664444");
-      drawRect(sx+3,sy-14,3,14,"#664444");
-      // Spark between posts
+      drawRect(sx-6,sy-14,3,14,"#664444");drawRect(sx+3,sy-14,3,14,"#664444");
       if(fl){
         for(var s=0;s<4;s++){
-          var sy2=sy-12+s*3;
           var jitter=F((Math.random()-0.5)*4);
-          drawRect(sx-3+jitter,sy2,6,1,C_SPARK);
+          drawRect(sx-3+jitter,sy-12+s*3,6,1,C_SPARK);
         }
       }
-      drawRect(sx-5,sy-14,2,2,C_HAZARD);
-      drawRect(sx+4,sy-14,2,2,C_HAZARD);
+      drawRect(sx-5,sy-14,2,2,C_HAZARD);drawRect(sx+4,sy-14,2,2,C_HAZARD);
     }
   }
 }
 
 function drawPickups(){
   for(var i=0;i<pickups.length;i++){
-    var pk=pickups[i];
-    var sx=wx(pk.x),sy=pk.y+Math.sin(pk.bob)*3;
+    var pk=pickups[i],sx=wx(pk.x),sy=pk.y+Math.sin(pk.bob)*3;
     if(sx<-20||sx>W+20) continue;
-    // Energy cell: glowing hexagonal-ish shape
-    drawRect(sx-4,sy-5,8,10,C_PICKUP);
-    drawRect(sx-3,sy-4,6,8,"#22ccaa");
+    drawRect(sx-4,sy-5,8,10,C_PICKUP);drawRect(sx-3,sy-4,6,8,"#22ccaa");
     drawRect(sx-2,sy-3,4,6,C_PICKUP_GLOW);
-    // Glow
-    ctx.globalAlpha=0.3;
-    drawRect(sx-6,sy-7,12,14,C_PICKUP);
-    ctx.globalAlpha=1;
-    // Top/bottom connectors
-    drawRect(sx-1,sy-7,2,2,"#aaa");
-    drawRect(sx-1,sy+5,2,2,"#aaa");
+    ctx.globalAlpha=0.3;drawRect(sx-6,sy-7,12,14,C_PICKUP);ctx.globalAlpha=1;
+    drawRect(sx-1,sy-7,2,2,"#aaa");drawRect(sx-1,sy+5,2,2,"#aaa");
   }
 }
 
@@ -680,16 +742,14 @@ function drawParticles(){
 function drawHUD(){
   drawRect(0,0,W,16,C_HUD_BG);
   ctx.font="5px monospace";
-  // Hearts
   for(var i=0;i<MAX_LIVES;i++){
     var hx=4+i*14,c=i<player.lives?C_HEART:"#442222";
     drawRect(hx,3,3,3,c);drawRect(hx+4,3,3,3,c);
     drawRect(hx,6,7,4,c);drawRect(hx+1,10,5,2,c);drawRect(hx+2,12,3,1,c);
   }
-  drawText("SCORE:"+score,W/2,12,C_TEXT,"center");
+  drawText("DIST:"+score,W/2,12,C_TEXT,"center");
   drawText("HI:"+bestScore,W-4,12,C_TEXT_DIM,"right");
 
-  // Dash bar
   var dashReady=player.dashCooldown<=0&&player.dashTimer<=0;
   drawRect(W-32,H-12,28,8,"#221100");
   var pct=dashReady?1:1-(player.dashCooldown/DASH_COOLDOWN);
@@ -698,107 +758,26 @@ function drawHUD(){
   drawText("DASH",W-31,H-14,dashReady?C_DASH_READY:C_DASH_COOL,"left");
 }
 
-function drawTitle(){
-  // Desert sky bg
-  drawSkyAndSun();
-  drawDunes();
-  drawRect(0,GROUND_Y,W,H-GROUND_Y,C_GROUND);
-
-  ctx.font="10px monospace";
-  drawText("FREQ-FX",W/2,38,C_TEXT,"center");
-  ctx.font="7px monospace";
-  drawText("PCB RUNNER",W/2,52,C_TEXT_DIM,"center");
-  ctx.font="5px monospace";
-  drawText("Dezert Audio",W/2,66,"#cc9955","center");
-
-  var blink=Math.sin(titleBlink*3)>0;
-  ctx.font="6px monospace";
-  drawText("> START",W/2,96,blink?C_TEXT:C_TEXT_DIM,"center");
-  drawText("HOW TO PLAY",W/2,116,C_TEXT_DIM,"center");
-  drawText("NOTIFY ME",W/2,136,"#ffaa44","center");
-
-  ctx.font="5px monospace";
-  drawText("BEST: "+bestScore,W/2,154,C_TEXT_DIM,"center");
-  drawText(isMobile?"TAP START":"ENTER / SPACE",W/2,80,C_TEXT_DIM,"center");
-}
-
-function drawHowTo(){
-  drawSkyAndSun();
-  drawRect(0,GROUND_Y,W,H-GROUND_Y,C_GROUND);
-
-  ctx.font="7px monospace";
-  drawText("HOW TO PLAY",W/2,18,C_TEXT,"center");
-  ctx.font="5px monospace";
-  var lines=[
-    "You are a ROBOT in the desert.",
-    "Dodge SPARK DRONES & GATES!",
-    "Collect ENERGY CELLS +10pts.",
-    "",
-    "DESKTOP:",
-    " LEFT/RIGHT or A/D = run",
-    " UP/W/SPACE = jump",
-    " SHIFT = dash (invincible)",
-    " ENTER = pause",
-    "",
-    "MOBILE:",
-    " On-screen buttons for move,",
-    " jump, and dash",
-    "",
-    "Speed increases over time."
-  ];
-  for(var i=0;i<lines.length;i++) drawText(lines[i],14,32+i*8,C_TEXT_DIM,"left");
-  var blink=Math.sin(titleBlink*3)>0;
-  drawText(isMobile?"TAP TO BACK":"ANY KEY = BACK",W/2,156,blink?C_TEXT:C_TEXT_DIM,"center");
-}
-
-function drawPaused(){
-  ctx.fillStyle="rgba(0,0,0,0.6)";ctx.fillRect(0,0,W,H);
-  ctx.font="8px monospace";
-  drawText("PAUSED",W/2,75,C_TEXT,"center");
-  ctx.font="5px monospace";
-  drawText(isMobile?"TAP TO RESUME":"ENTER = RESUME",W/2,90,C_TEXT_DIM,"center");
-}
-
-function drawGameOver(){
-  ctx.fillStyle="rgba(0,0,0,0.7)";ctx.fillRect(0,0,W,H);
-  ctx.font="8px monospace";
-  drawText("GAME OVER",W/2,55,C_HAZARD,"center");
-  ctx.font="6px monospace";
-  drawText("SCORE: "+score,W/2,75,C_TEXT,"center");
-  drawText(score>=bestScore?"NEW BEST!":"BEST: "+bestScore,W/2,90,score>=bestScore?"#ffcc00":C_TEXT_DIM,"center");
-  ctx.font="5px monospace";
-  var blink=Math.sin(titleBlink*3)>0;
-  drawText(isMobile?"TAP TO RETRY":"ENTER / SPACE",W/2,110,blink?C_TEXT:C_TEXT_DIM,"center");
-}
-
 function draw(){
   ctx.save();
   if(shakeTimer>0) ctx.translate(F((Math.random()-0.5)*4),F((Math.random()-0.5)*4));
   ctx.font="5px monospace";
 
-  if(state==="title"){drawTitle();}
-  else if(state==="howto"){drawHowTo();}
-  else {
-    drawSkyAndSun();
-    drawDunes();
-    drawGround();
-    drawObstacles();
-    drawPickups();
-    drawHazards();
-    drawRobot();
-    drawParticles();
-    drawHUD();
-    if(state==="paused") drawPaused();
-    if(state==="gameover") drawGameOver();
-  }
+  // Always draw game world (visible behind overlays)
+  drawSkyAndSun();drawDunes();drawGround();drawObstacles();
+  drawPickups();drawHazards();drawRobot();drawParticles();
+
+  if(state==="playing"||state==="paused"||state==="gameover") drawHUD();
+
   ctx.restore();
 }
 
 // === RESIZE ===
 function resize(){
   var scale=Math.min(window.innerWidth/W,window.innerHeight/H);
-  canvas.style.width=F(W*scale)+"px";
-  canvas.style.height=F(H*scale)+"px";
+  var sw=F(W*scale),sh=F(H*scale);
+  canvas.style.width=sw+"px";canvas.style.height=sh+"px";
+  wrap.style.width=sw+"px";wrap.style.height=sh+"px";
 }
 window.addEventListener("resize",resize);
 resize();
@@ -813,6 +792,7 @@ function loop(ts){
 }
 
 initWorld();
+showScreen("title");
 requestAnimationFrame(loop);
 
 })();
