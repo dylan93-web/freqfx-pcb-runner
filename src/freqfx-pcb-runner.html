@@ -2518,8 +2518,8 @@ function resize(){
   var isLandscape=window.innerWidth>window.innerHeight;
   var scale;
   if(isMobile&&isLandscape){
-    // Mobile landscape: use full width, zoom in for immersive feel
-    scale=window.innerWidth/W;
+    // Mobile landscape: fit height fully, allow width to extend
+    scale=window.innerHeight/H;
   } else {
     scale=Math.min(window.innerWidth/W,window.innerHeight/H);
   }
