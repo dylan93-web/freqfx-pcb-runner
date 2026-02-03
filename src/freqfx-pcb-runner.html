@@ -127,7 +127,7 @@ var JUMP_BUFFER_MS=100;
 var DASH_SPEED=220;
 var DASH_DURATION=0.35;
 var MAX_LIVES=3;
-var LIVES_CAP=5;
+var LIVES_CAP=6;
 var INVULN_TIME=1.5;
 var SAFE_START=2.0;
 var SPAWN_BASE=2.6;
@@ -2284,27 +2284,82 @@ function draw(){
       var rs=2+((seed*7)%3);
       R(rx,ry,rs,rs,"#3a2a18");
     }
-    // Player silhouette falling
-    var px=W/2-6;
-    var py=H/2+Math.sin(fallProgress*6)*5;
-    ctx.fillStyle="#222";
-    R(px,py-8,12,12,"#222");
-    R(px+2,py+4,8,6,"#222");
-    R(px-1,py+10,5,4,"#222");
-    R(px+8,py+10,5,4,"#222");
+    // Cave floor appearing at the bottom near end of fall
+    var groundY=H+20;
+    if(fallProgress>0.7){
+      var groundProgress=(fallProgress-0.7)/0.3;
+      groundY=H-(groundProgress*50);
+      // Draw cave floor
+      R(0,groundY,W,60,"#2a1a10");
+      R(0,groundY,W,4,"#3a2818");
+      // Floor texture
+      for(var fx=0;fx<W;fx+=12){
+        var fh=2+((fx*37)%4);
+        R(fx,groundY+4,8,fh,"#1a0c06");
+      }
+    }
+    // Blue player droid falling - starts at top, lands on ground
+    var bx=W/2;
+    var by;
+    var legKick,armWave;
+    var landed=false;
+    if(fallProgress<0.75){
+      // Falling phase - robot at center with bobbing
+      by=H*0.4+Math.sin(fallProgress*8)*8;
+      legKick=Math.sin(fallProgress*14)*3;
+      armWave=Math.sin(fallProgress*18)*3;
+    } else {
+      // Landing phase - robot moves down to ground
+      var landProgress=(fallProgress-0.75)/0.25;
+      var targetY=groundY-20;
+      by=H*0.4+(targetY-H*0.4)*landProgress;
+      // Reduce flailing as landing
+      legKick=Math.sin(fallProgress*14)*3*(1-landProgress);
+      armWave=Math.sin(fallProgress*18)*3*(1-landProgress);
+      if(landProgress>0.9) landed=true;
+    }
+    // Shadow below robot (stronger when near ground)
+    var shadowAlpha=fallProgress>0.7?0.3+((fallProgress-0.7)/0.3)*0.3:0.2;
+    ctx.globalAlpha=shadowAlpha;ctx.fillStyle="#000";
+    ctx.beginPath();ctx.ellipse(bx,landed?groundY:by+20,8,3,0,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+    // Head
+    R(bx-6,by-17,12,7,C_ROBOT_DARK);R(bx-5,by-16,10,5,C_ROBOT_BODY);
+    R(bx-5,by-17,10,1,C_ROBOT_LIGHT);
+    R(bx-7,by-15,2,4,"#555");R(bx+5,by-15,2,4,"#555");
+    // Visor (facing right during fall)
+    R(bx,by-15,5,3,C_VISOR_DIM);R(bx+1,by-14,4,2,C_VISOR);R(bx+2,by-14,2,1,C_VISOR_HI);
+    ctx.globalAlpha=0.08;R(bx+1,by-16,6,5,C_VISOR);ctx.globalAlpha=1;
+    // Body
+    R(bx-5,by-10,10,7,C_ROBOT_DARK);R(bx-4,by-9,8,5,C_ROBOT_BODY);
+    R(bx-3,by-8,6,3,C_ROBOT_LIGHT);
+    R(bx-4,by-4,8,1,"#555");R(bx-2,by-4,1,1,"#ffcc44");
+    // Shoulders
+    R(bx-8,by-11,3,3,C_SHOULDER);R(bx+5,by-11,3,3,C_SHOULDER);
+    // Arms (flailing, less when landing)
+    R(bx-8,by-8+armWave,2,6,C_ROBOT_DARK);R(bx-8,by-8+armWave,2,2,C_ROBOT_BODY);
+    R(bx+6,by-8-armWave,2,6,C_ROBOT_DARK);R(bx+6,by-8-armWave,2,2,C_ROBOT_BODY);
+    // Legs (kicking, less when landing)
+    R(bx-4,by-3+legKick,3,5,C_ROBOT_DARK);R(bx+1,by-3-legKick,3,5,C_ROBOT_DARK);
+    R(bx-5,by+2+legKick,5,1,"#555");R(bx+1,by+2-legKick,5,1,"#555");
+    // Antenna
+    R(bx+2,by-18,1,2,C_ROBOT_LIGHT);R(bx+2,by-19,1,1,C_VISOR);
+    // Landing dust effect
+    if(landed){
+      ctx.globalAlpha=0.4;ctx.fillStyle="#aa8866";
+      for(var di=0;di<8;di++){
+        var dx=bx-15+di*4+Math.sin(di*2)*3;
+        var dy=groundY-2-Math.random()*4;
+        R(dx,dy,3,2,"#aa8866");
+      }
+      ctx.globalAlpha=1;
+    }
     // Vignette darkness at edges
     var grad=ctx.createRadialGradient(W/2,H/2,30,W/2,H/2,H*0.7);
     grad.addColorStop(0,"rgba(0,0,0,0)");
     grad.addColorStop(1,"rgba(0,0,0,0.6)");
     ctx.fillStyle=grad;
     ctx.fillRect(0,0,W,H);
-    // Flash at bottom as approaching ground
-    if(fallProgress>0.8){
-      var flashAlpha=(fallProgress-0.8)*3;
-      ctx.globalAlpha=flashAlpha*0.4;ctx.fillStyle="#ff8844";
-      ctx.fillRect(0,0,W,H);
-      ctx.globalAlpha=1;
-    }
   }
 
   // Level transition banner
