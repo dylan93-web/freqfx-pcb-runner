@@ -16,19 +16,19 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 @keyframes rotate-hint{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
 /* Mobile landscape styles */
 @media (pointer: coarse) {
-  .hud-heart{width:12px;height:12px}
-  #hud-hearts{gap:1px}
-  #hud-dash{bottom:2px;left:50%;transform:translateX(-50%);gap:3px}
-  #hud-dash-label{font-size:7px;letter-spacing:0px}
-  .dash-pip{width:12px;height:6px;border-radius:2px;border-width:1px}
+  .hud-heart{width:14px;height:14px}
+  #hud-hearts{gap:2px}
+  #hud-dash{position:fixed!important;top:8px!important;right:8px!important;bottom:auto!important;left:auto!important;transform:none!important;gap:4px;flex-direction:column;align-items:flex-end}
+  #hud-dash-label{font-size:9px;letter-spacing:1px}
+  .dash-pip{width:20px;height:8px;border-radius:2px;border-width:1px}
   #hud-dash-charges{gap:2px}
-  #hud-center{font-size:8px}
-  #hud-hi{font-size:6px}
-  #hud-level{font-size:6px}
-  #hud-power{bottom:14px}
-  #hud-power-label{font-size:7px}
-  #hud-power-bar{width:25px;height:4px}
-  #dom-hud{padding:2px 4px}
+  #hud-center{font-size:9px}
+  #hud-hi{font-size:7px}
+  #hud-level{font-size:7px}
+  #hud-power{position:fixed!important;top:50px!important;right:8px!important;bottom:auto!important;left:auto!important;transform:none!important}
+  #hud-power-label{font-size:8px}
+  #hud-power-bar{width:30px;height:5px}
+  #dom-hud{padding:3px 6px}
 }
 /* Pause button for mobile */
 #mobile-pause{display:none;position:fixed;top:6px;left:50%;transform:translateX(-50%);width:40px;height:24px;z-index:10;touch-action:manipulation;border:1px solid rgba(255,200,180,0.3);border-radius:4px;background:rgba(0,0,0,0.5);color:#ffcc99;font:bold 10px monospace;opacity:0.7}
