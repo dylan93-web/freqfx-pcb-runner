@@ -16,17 +16,22 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 @keyframes rotate-hint{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
 /* Mobile landscape styles */
 @media (pointer: coarse) {
-  .hud-heart{width:24px;height:24px}
-  #hud-hearts{gap:3px}
-  #hud-dash{bottom:8px;left:50%;transform:translateX(-50%);gap:6px}
-  #hud-dash-label{font-size:12px;letter-spacing:1px}
-  .dash-pip{width:24px;height:12px;border-radius:3px;border-width:2px}
-  #hud-dash-charges{gap:4px}
-  #hud-center{font-size:11px}
-  #hud-hi{font-size:9px}
-  #hud-level{font-size:8px}
-  #hud-power{bottom:28px}
+  .hud-heart{width:12px;height:12px}
+  #hud-hearts{gap:1px}
+  #hud-dash{bottom:2px;left:50%;transform:translateX(-50%);gap:3px}
+  #hud-dash-label{font-size:7px;letter-spacing:0px}
+  .dash-pip{width:12px;height:6px;border-radius:2px;border-width:1px}
+  #hud-dash-charges{gap:2px}
+  #hud-center{font-size:8px}
+  #hud-hi{font-size:6px}
+  #hud-level{font-size:6px}
+  #hud-power{bottom:14px}
+  #hud-power-label{font-size:7px}
+  #hud-power-bar{width:25px;height:4px}
+  #dom-hud{padding:2px 4px}
 }
+/* Pause button for mobile */
+#mobile-pause{display:none;position:fixed;top:6px;left:50%;transform:translateX(-50%);width:40px;height:24px;z-index:10;touch-action:manipulation;border:1px solid rgba(255,200,180,0.3);border-radius:4px;background:rgba(0,0,0,0.5);color:#ffcc99;font:bold 10px monospace;opacity:0.7}
 /* Joystick styles */
 #joystick-zone{display:none;position:fixed;left:10px;bottom:10px;width:130px;height:130px;z-index:10;touch-action:none}
 #joystick-base{position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,200,180,0.15);border:3px solid rgba(255,200,180,0.3)}
@@ -85,6 +90,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 <body>
 <div id="rotate-prompt"><div class="icon">📱</div>Rotate your phone to<br>landscape mode to play</div>
 <div id="joystick-zone"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
+<button id="mobile-pause">| |</button>
 <div id="wrap">
   <canvas id="c"></canvas>
   <div id="dom-hud">
@@ -459,14 +465,15 @@ var mobileButtons=[];
 var joystickZone=document.getElementById("joystick-zone");
 var joystickKnob=document.getElementById("joystick-knob");
 var rotatePrompt=document.getElementById("rotate-prompt");
+var mobilePause=document.getElementById("mobile-pause");
 var joystickActive=false,joystickTouchId=null;
 var joystickCenter={x:60,y:60};
 var joystickValue={x:0,y:0};
 
 if(isMobile){
   // Only JUMP and DASH buttons on right side (big)
-  [{id:"mj",text:"JUMP",right:"15px",bottom:"80px",w:100,h:80},
-   {id:"md",text:"DASH",right:"15px",bottom:"10px",w:100,h:60}
+  [{id:"mj",text:"JUMP",right:"12px",bottom:"70px",w:90,h:70},
+   {id:"md",text:"DASH",right:"12px",bottom:"8px",w:90,h:55}
   ].forEach(function(d){
     var b=document.createElement("button");
     b.className="mobile-btn";b.textContent=d.text;b.style.display="block";
@@ -476,6 +483,13 @@ if(isMobile){
     b.style.color="#ffcc99";b.style.border="3px solid rgba(255,200,180,0.6)";
     document.body.appendChild(b);mobileButtons.push({el:b,id:d.id});
   });
+
+  // Mobile pause button handler
+  mobilePause.addEventListener("touchstart",function(e){
+    e.preventDefault();e.stopPropagation();
+    if(state==="playing"){state="paused";showScreen("paused");}
+    else if(state==="paused"){state="playing";showScreen("game");}
+  },{passive:false});
 
   // Joystick touch handlers
   joystickZone.addEventListener("touchstart",function(e){
@@ -530,6 +544,7 @@ if(isMobile){
     var isLandscape=window.innerWidth>window.innerHeight;
     rotatePrompt.style.display=isLandscape?"none":"flex";
     joystickZone.style.display=isLandscape?"block":"none";
+    mobilePause.style.display=isLandscape?"block":"none";
     mobileButtons.forEach(function(mb){mb.el.style.display=isLandscape?"block":"none";});
   }
   window.addEventListener("resize",checkOrientation);
@@ -2503,8 +2518,8 @@ function resize(){
   var isLandscape=window.innerWidth>window.innerHeight;
   var scale;
   if(isMobile&&isLandscape){
-    // Mobile landscape: fit height, allow horizontal overflow for controls
-    scale=window.innerHeight/H*0.95;
+    // Mobile landscape: use full width, zoom in for immersive feel
+    scale=window.innerWidth/W;
   } else {
     scale=Math.min(window.innerWidth/W,window.innerHeight/H);
   }
