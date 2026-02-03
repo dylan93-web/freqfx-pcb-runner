@@ -481,6 +481,8 @@ var levelTransitionTimer=0;
 var spawnPauseTimer=0;
 var pitFallTimer=0,pitFallScroll=0;
 var bigwormTimer=0,spiderTimer=0;
+var level3GraceTimer=0; // Invuln grace period during L3 transition
+var LEVEL_3_GRACE_TIME=2.5; // Total grace: pit fall + 0.5s after landing
 
 // Invincibility once per level gate
 var invincSpawned={1:false,2:false,3:false};
@@ -647,7 +649,7 @@ function resetGame(){
   heartPickups=[];powerCells=[];invincPickups=[];sandworms=[];
   score=0;maxX=60;gameTime=0;spawnTimer=SAFE_START;shakeTimer=0;lastGenX=0;lastPowerX=0;lastHeartX=0;lastInvincX=0;
   stompFlash=0;stompCooldown=0;
-  level=1;levelTransitionTimer=0;spawnPauseTimer=0;pitFallTimer=0;pitFallScroll=0;
+  level=1;levelTransitionTimer=0;spawnPauseTimer=0;pitFallTimer=0;pitFallScroll=0;level3GraceTimer=0;
   invincSpawned={1:false,2:false,3:false};
   wormTimer=WORM_MIN_INTERVAL+Math.random()*(WORM_MAX_INTERVAL-WORM_MIN_INTERVAL);
   flierTimer=5+Math.random()*3;
@@ -844,23 +846,38 @@ function update(dt){
   if(level===2&&score>=LEVEL_3_THRESHOLD&&pitFallTimer<=0){
     pitFallTimer=LEVEL_3_TRANSITION_TIME;
     pitFallScroll=0;
-    spawnPauseTimer=LEVEL_3_TRANSITION_TIME+0.8;
+    spawnPauseTimer=LEVEL_3_TRANSITION_TIME+1.5; // Extended spawn delay
+    level3GraceTimer=LEVEL_3_GRACE_TIME; // Start invuln grace period
+    // Clear all projectiles/hazards and enemies from Level 2
+    projectiles=[];lasers=[];daggers=[];gooDrops=[];
+    enemies=[];fliers=[];droids=[];sandworms=[];bigworms=[];spiders=[];
   }
   if(pitFallTimer>0){
     pitFallTimer-=dt;
     pitFallScroll+=PIT_FALL_SPEED*dt;
-    player.vy=PIT_FALL_SPEED; // Force downward fast
-    player.vx=player.vx*0.9; // Dampen horizontal movement
+    player.vy=0; // Freeze vertical during transition (visual only)
+    player.vx=0; // Freeze horizontal during transition
     player.y=GROUND_Y-20; // Keep player centered vertically during fall
     if(pitFallTimer<=0){
       level=3;
       levelTransitionTimer=LEVEL_TRANSITION_TIME;
-      player.y=GROUND_Y-2;player.vy=80;player.onGround=false; // Small landing bounce
+      // Safe landing: clamp to ground, no velocity
+      player.y=GROUND_Y;player.vy=0;player.onGround=true;
+      player.invuln=Math.max(player.invuln,0.5); // Extra invuln frames on landing
       hudLevel.textContent="LVL 3";
       hudLevel.style.color="#ff8844";
       pitFallScroll=0;
+      spawnPauseTimer=1.5; // Extra spawn delay after landing
+      // Reset spawn timers to prevent immediate spawns
+      bigwormTimer=3+Math.random()*2;
+      spiderTimer=2.5+Math.random()*2;
+      droidTimer=4+Math.random()*3;
+      // Clear any stray projectiles again
+      projectiles=[];lasers=[];daggers=[];gooDrops=[];
     }
   }
+  // Decrement Level 3 grace timer
+  if(level3GraceTimer>0) level3GraceTimer-=dt;
 
   var hasPower=player.powerTimer>0;
   var curMaxRun=hasPower?MAX_RUN*POWER_SPEED_MULT:MAX_RUN;
@@ -1055,7 +1072,8 @@ function update(dt){
   if(lastDomeX<cam.x+W+150) glowDomes.push({x:lastDomeX+60+Math.random()*80,r:4+Math.random()*5});
 
   var hasInvinc=player.invincTimer>0;
-  var isInvuln=player.invuln>0||isDashing||hasPower||hasInvinc;
+  var inGracePeriod=level3GraceTimer>0||pitFallTimer>0;
+  var isInvuln=player.invuln>0||isDashing||hasPower||hasInvinc||inGracePeriod;
   var pr={x:player.x-PLAYER_W/2+HIT_SHRINK,y:player.y-PLAYER_H+HIT_SHRINK,
     w:PLAYER_W-HIT_SHRINK*2,h:PLAYER_H-HIT_SHRINK*2};
 
