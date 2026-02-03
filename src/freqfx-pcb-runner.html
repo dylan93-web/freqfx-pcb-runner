@@ -9,20 +9,28 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#1a1020;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 #wrap{position:relative;display:flex;align-items:center;justify-content:center}
 canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
-.mobile-btn{display:none;position:fixed;z-index:10;touch-action:manipulation;border:none;font:bold 16px monospace;border-radius:10px;opacity:0.85}
-/* Mobile-specific styles */
-@media (max-width: 768px), (pointer: coarse) {
-  .hud-heart{width:28px;height:28px}
-  #hud-hearts{gap:4px}
-  #hud-dash{bottom:140px;gap:8px}
-  #hud-dash-label{font-size:14px;letter-spacing:1px}
-  .dash-pip{width:28px;height:16px;border-radius:3px;border-width:2px}
-  #hud-dash-charges{gap:5px}
-  #hud-center{font-size:12px}
-  #hud-hi{font-size:10px}
-  #hud-level{font-size:9px}
-  #hud-power{bottom:160px}
+.mobile-btn{display:none;position:fixed;z-index:10;touch-action:manipulation;border:none;font:bold 18px monospace;border-radius:12px;opacity:0.9}
+/* Rotate prompt for portrait mode on mobile */
+#rotate-prompt{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,5,15,0.95);z-index:100;flex-direction:column;align-items:center;justify-content:center;color:#ffcc88;font:bold 18px monospace;text-align:center;padding:20px}
+#rotate-prompt .icon{font-size:48px;margin-bottom:16px;animation:rotate-hint 1.5s ease-in-out infinite}
+@keyframes rotate-hint{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
+/* Mobile landscape styles */
+@media (pointer: coarse) {
+  .hud-heart{width:24px;height:24px}
+  #hud-hearts{gap:3px}
+  #hud-dash{bottom:8px;left:50%;transform:translateX(-50%);gap:6px}
+  #hud-dash-label{font-size:12px;letter-spacing:1px}
+  .dash-pip{width:24px;height:12px;border-radius:3px;border-width:2px}
+  #hud-dash-charges{gap:4px}
+  #hud-center{font-size:11px}
+  #hud-hi{font-size:9px}
+  #hud-level{font-size:8px}
+  #hud-power{bottom:28px}
 }
+/* Joystick styles */
+#joystick-zone{display:none;position:fixed;left:10px;bottom:10px;width:130px;height:130px;z-index:10;touch-action:none}
+#joystick-base{position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,200,180,0.15);border:3px solid rgba(255,200,180,0.3)}
+#joystick-knob{position:absolute;width:50px;height:50px;border-radius:50%;background:rgba(255,200,180,0.5);border:2px solid rgba(255,200,180,0.7);left:35px;top:35px;transition:none}
 #overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:5}
 #overlay.active{pointer-events:auto}
 #overlay *{pointer-events:auto}
@@ -75,6 +83,8 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 </style>
 </head>
 <body>
+<div id="rotate-prompt"><div class="icon">📱</div>Rotate your phone to<br>landscape mode to play</div>
+<div id="joystick-zone"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
 <div id="wrap">
   <canvas id="c"></canvas>
   <div id="dom-hud">
@@ -444,22 +454,87 @@ function showScreen(name){
   else{overlay.classList.remove("active");domHud.classList.add("visible");}
 }
 
-// Mobile buttons
+// Mobile controls - landscape with joystick
 var mobileButtons=[];
+var joystickZone=document.getElementById("joystick-zone");
+var joystickKnob=document.getElementById("joystick-knob");
+var rotatePrompt=document.getElementById("rotate-prompt");
+var joystickActive=false,joystickTouchId=null;
+var joystickCenter={x:60,y:60};
+var joystickValue={x:0,y:0};
+
 if(isMobile){
-  [{id:"ml",text:"\u25C0",x:"12px",bottom:"20px",w:70,h:70},
-   {id:"mr",text:"\u25B6",x:"92px",bottom:"20px",w:70,h:70},
-   {id:"mj",text:"JUMP",right:"12px",bottom:"100px",w:90,h:70},
-   {id:"md",text:"DASH",right:"12px",bottom:"20px",w:90,h:70}
+  // Only JUMP and DASH buttons on right side (big)
+  [{id:"mj",text:"JUMP",right:"15px",bottom:"80px",w:100,h:80},
+   {id:"md",text:"DASH",right:"15px",bottom:"10px",w:100,h:60}
   ].forEach(function(d){
     var b=document.createElement("button");
     b.className="mobile-btn";b.textContent=d.text;b.style.display="block";
     b.style.width=d.w+"px";b.style.height=d.h+"px";
     if(d.x) b.style.left=d.x;if(d.right) b.style.right=d.right;
-    b.style.bottom=d.bottom;b.style.background="rgba(255,200,180,0.25)";
-    b.style.color="#ffcc99";b.style.border="2px solid rgba(255,200,180,0.5)";
+    b.style.bottom=d.bottom;b.style.background="rgba(255,200,180,0.3)";
+    b.style.color="#ffcc99";b.style.border="3px solid rgba(255,200,180,0.6)";
     document.body.appendChild(b);mobileButtons.push({el:b,id:d.id});
   });
+
+  // Joystick touch handlers
+  joystickZone.addEventListener("touchstart",function(e){
+    e.preventDefault();
+    var t=e.changedTouches[0];
+    joystickTouchId=t.identifier;
+    joystickActive=true;
+    updateJoystick(t);
+  },{passive:false});
+
+  joystickZone.addEventListener("touchmove",function(e){
+    e.preventDefault();
+    for(var i=0;i<e.changedTouches.length;i++){
+      if(e.changedTouches[i].identifier===joystickTouchId){
+        updateJoystick(e.changedTouches[i]);
+        break;
+      }
+    }
+  },{passive:false});
+
+  joystickZone.addEventListener("touchend",function(e){
+    for(var i=0;i<e.changedTouches.length;i++){
+      if(e.changedTouches[i].identifier===joystickTouchId){
+        joystickActive=false;
+        joystickTouchId=null;
+        joystickValue.x=0;joystickValue.y=0;
+        joystickKnob.style.left="35px";joystickKnob.style.top="35px";
+        held.left=false;held.right=false;
+        break;
+      }
+    }
+  });
+
+  function updateJoystick(touch){
+    var rect=joystickZone.getBoundingClientRect();
+    var cx=rect.left+60,cy=rect.top+60;
+    var dx=touch.clientX-cx,dy=touch.clientY-cy;
+    var dist=Math.sqrt(dx*dx+dy*dy);
+    var maxDist=40;
+    if(dist>maxDist){dx=dx/dist*maxDist;dy=dy/dist*maxDist;dist=maxDist;}
+    joystickKnob.style.left=(35+dx)+"px";
+    joystickKnob.style.top=(35+dy)+"px";
+    joystickValue.x=dx/maxDist;
+    joystickValue.y=dy/maxDist;
+    // Update held state based on joystick
+    held.left=joystickValue.x<-0.3;
+    held.right=joystickValue.x>0.3;
+  }
+
+  // Orientation check
+  function checkOrientation(){
+    var isLandscape=window.innerWidth>window.innerHeight;
+    rotatePrompt.style.display=isLandscape?"none":"flex";
+    joystickZone.style.display=isLandscape?"block":"none";
+    mobileButtons.forEach(function(mb){mb.el.style.display=isLandscape?"block":"none";});
+  }
+  window.addEventListener("resize",checkOrientation);
+  window.addEventListener("orientationchange",checkOrientation);
+  checkOrientation();
 }
 
 // === STATE ===
@@ -2425,11 +2500,11 @@ function draw(){
 }
 
 function resize(){
-  var isPortrait=window.innerHeight>window.innerWidth;
+  var isLandscape=window.innerWidth>window.innerHeight;
   var scale;
-  if(isMobile&&isPortrait){
-    // Mobile portrait: zoom in more, use full width
-    scale=window.innerWidth/W*1.15;
+  if(isMobile&&isLandscape){
+    // Mobile landscape: fit height, allow horizontal overflow for controls
+    scale=window.innerHeight/H*0.95;
   } else {
     scale=Math.min(window.innerWidth/W,window.innerHeight/H);
   }
