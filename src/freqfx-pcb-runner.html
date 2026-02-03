@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>FREQ-FX: PCB Runner</title>
+<title>FREQ-2: Dezert Runner</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#1a1020;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
@@ -47,14 +47,14 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 #hud-hi{color:#ccaa88;font-size:13px;font-weight:bold;letter-spacing:1px;text-shadow:2px 2px 3px rgba(0,0,0,0.9),-1px -1px 0 rgba(0,0,0,0.6)}
 #hud-level{color:#88ccff;font-size:11px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 6px rgba(100,180,255,0.5),1px 1px 2px rgba(0,0,0,0.8)}
 /* Dash charges — 3x bigger, bottom center */
-#hud-dash{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;z-index:4;pointer-events:none}
-#hud-dash-label{font-size:18px;font-weight:bold;letter-spacing:2px;color:#44ffcc;text-shadow:0 0 8px rgba(68,255,204,0.5),1px 1px 3px rgba(0,0,0,0.9);font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
-#hud-dash-charges{display:flex;gap:6px;align-items:center}
-.dash-pip{width:36px;height:20px;border-radius:4px;border:2px solid rgba(68,255,204,0.4);background:rgba(0,0,0,0.5)}
-.dash-pip.full{background:#44ffcc;border-color:#44ffcc;box-shadow:0 0 8px rgba(68,255,204,0.6),0 0 3px rgba(68,255,204,0.3)}
+#hud-dash{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:20px;z-index:4;pointer-events:none}
+#hud-dash-label{font-size:36px;font-weight:bold;letter-spacing:4px;color:#44ffcc;text-shadow:0 0 12px rgba(68,255,204,0.5),2px 2px 4px rgba(0,0,0,0.9);font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+#hud-dash-charges{display:flex;gap:12px;align-items:center}
+.dash-pip{width:72px;height:40px;border-radius:6px;border:3px solid rgba(68,255,204,0.4);background:rgba(0,0,0,0.5)}
+.dash-pip.full{background:#44ffcc;border-color:#44ffcc;box-shadow:0 0 12px rgba(68,255,204,0.6),0 0 6px rgba(68,255,204,0.3)}
 .dash-pip.empty{background:rgba(30,30,30,0.7);border-color:rgba(68,255,204,0.15)}
 #hud-safe{position:absolute;top:26px;left:50%;transform:translateX(-50%);font-size:13px;font-weight:bold;color:#88ddcc;letter-spacing:3px;text-shadow:0 0 8px rgba(100,220,200,0.6),2px 2px 3px rgba(0,0,0,0.8);display:none;z-index:4;pointer-events:none;font-family:ui-monospace,monospace}
-#hud-power{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:6px;z-index:4;pointer-events:none}
+#hud-power{position:absolute;bottom:76px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:6px;z-index:4;pointer-events:none}
 #hud-power.visible{display:flex}
 #hud-power-label{font-size:13px;font-weight:bold;letter-spacing:1px;color:#44aaff;text-shadow:0 0 6px rgba(68,170,255,0.5),1px 1px 2px rgba(0,0,0,0.8);font-family:ui-monospace,monospace}
 #hud-power-bar{width:60px;height:10px;background:rgba(0,0,0,0.5);border-radius:3px;overflow:hidden;border:1px solid rgba(68,170,255,0.3)}
@@ -85,8 +85,8 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
   <div id="hud-safe">SAFE</div>
   <div id="overlay" class="active">
     <div id="scr-title" class="ov-panel">
-      <div class="ov-title">FREQ-FX</div>
-      <div class="ov-subtitle">PCB Runner</div>
+      <div class="ov-title">FREQ-2</div>
+      <div class="ov-subtitle">Dezert Runner</div>
       <div class="ov-brand">Dezert Audio</div>
       <div class="ov-best" id="title-best">BEST: 0</div>
       <button class="ov-btn" id="btn-start">START</button>
@@ -403,7 +403,8 @@ var desktopHelp=
   "ENTER  =  Pause\n\n"+
   "<b>PICKUPS:</b>\n"+
   "Blue POWERcells  =  refill dash + boost\n"+
-  "Pink hearts  =  +1 life\n\n"+
+  "Pink hearts  =  +1 life\n"+
+  "Golden star  =  INVINCIBLE (rare!)\n\n"+
   "<b>TIP:</b> Stomp enemies from above!\n"+
   "Reach 500 dist for LEVEL 2 — night desert!";
 var mobileHelp=
@@ -413,7 +414,8 @@ var mobileHelp=
   "\u25C0 \u25B6  =  Run  |  JUMP  |  DASH\n\n"+
   "<b>PICKUPS:</b>\n"+
   "Blue POWERcells  =  refill dash + boost\n"+
-  "Pink hearts  =  +1 life\n\n"+
+  "Pink hearts  =  +1 life\n"+
+  "Golden star  =  INVINCIBLE (rare!)\n\n"+
   "<b>TIP:</b> Stomp enemies from above!\n"+
   "Reach 500 dist for LEVEL 2 — night desert!";
 howtoText.innerHTML=isMobile?mobileHelp:desktopHelp;
