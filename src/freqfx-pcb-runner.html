@@ -143,7 +143,9 @@ var MAX_JUMP_HEIGHT=38;
 
 // Level system
 var LEVEL_2_THRESHOLD=500;
+var LEVEL_3_THRESHOLD=1000;
 var LEVEL_TRANSITION_TIME=1.2;
+var LEVEL_3_TRANSITION_TIME=0.8;
 var SPAWN_PAUSE_TIME=0.8;
 
 // Ship enemy constants
@@ -199,6 +201,24 @@ var DROID_FIRE_INTERVAL=2.8;
 var DROID_FIRE_TELEGRAPH=0.25;
 var LASER_SPEED=70;
 var MAX_LASERS=2;
+
+// Level 3 enemies
+// Big Worm — larger sandworm that shoots daggers
+var BIGWORM_SPEED=70;
+var BIGWORM_LENGTH=36;
+var BIGWORM_FIRE_INTERVAL=2.0;
+var BIGWORM_FIRE_TELEGRAPH=0.3;
+var DAGGER_SPEED=90;
+var MAX_DAGGERS=4;
+var STOMP_BIGWORM_SCORE=15;
+
+// Spider — ceiling crawler that drops toxic goo
+var SPIDER_SPEED=30;
+var SPIDER_DROP_INTERVAL=2.5;
+var SPIDER_DROP_TELEGRAPH=0.2;
+var GOO_GRAVITY=180;
+var MAX_GOO=3;
+var STOMP_SPIDER_SCORE=8;
 
 // Pastel dusk palette (Level 1)
 var C_ROBOT_BODY="#3366aa";
@@ -284,6 +304,38 @@ var C2_DROID_EYE="#ffff44";
 // Invincibility power-up colors
 var C_INVINC="#ffcc00";
 var C_INVINC_GLOW="rgba(255,200,0,0.4)";
+
+// Level 3 cave colors
+var C3_DUNE_FAR="#2a2018";
+var C3_DUNE_FAR2="#3a2820";
+var C3_DUNE_MID="#251810";
+var C3_DUNE_NEAR="#352518";
+var C3_GROUND="#1a1208";
+var C3_GROUND_DARK="#120c04";
+var C3_GROUND_DEEPER="#0a0600";
+var C3_GROUND_LINE="#2a1c10";
+var C3_SAND_SPEC="#3a2818";
+var C3_SAND_DARK="#1a1208";
+var C3_TDUNE_BASE="#2a1c10";
+var C3_TDUNE_INNER="#3a2818";
+var C3_TDUNE_HIGHLIGHT="#4a3828";
+var C3_TDUNE_SHADOW="#100a04";
+var C3_TDUNE_CREST="#3a2c1c";
+var C3_TDUNE_EDGE="#0a0600";
+
+// Level 3 enemy colors
+var C_BIGWORM="#6a4030";
+var C_BIGWORM_DARK="#4a2820";
+var C_BIGWORM_EYE="#ff4422";
+var C_DAGGER="#aa6644";
+var C_DAGGER_GLOW="rgba(170,100,68,0.4)";
+var C_SPIDER="#3a5040";
+var C_SPIDER_DARK="#2a3830";
+var C_SPIDER_EYE="#88ff44";
+var C_GOO="#44ff66";
+var C_GOO_GLOW="rgba(68,255,102,0.4)";
+var C_TORCH="#ff8844";
+var C_TORCH_GLOW="rgba(255,136,68,0.3)";
 
 var canvas=document.getElementById("c");
 var ctx=canvas.getContext("2d");
@@ -405,6 +457,9 @@ var dunesFar=[],dunesMid=[],dunesClose=[];
 var sandSpecs=[],props=[],glowDomes=[];
 var heartPickups=[],powerCells=[],invincPickups=[];
 var sandworms=[];
+var bigworms=[],daggers=[];
+var spiders=[],gooDrops=[];
+var torches=[];
 var stars=[];
 var score=0,maxX=0;
 var bestScore=parseInt(localStorage.getItem("freqfx_best"))||0;
@@ -417,6 +472,11 @@ var lastGenX=0,lastPowerX=0,lastHeartX=0,lastInvincX=0;
 var level=1;
 var levelTransitionTimer=0;
 var spawnPauseTimer=0;
+var pitFallTimer=0;
+var bigwormTimer=0,spiderTimer=0;
+
+// Invincibility once per level gate
+var invincSpawned={1:false,2:false,3:false};
 
 // Stomp flash effect + cooldown
 var stompFlash=0;
@@ -523,7 +583,8 @@ function generateWorld(upToX){
         lastPowerX=itemX;
       }
     }
-    if(Math.random()<0.12&&(segStart-lastPowerX)>POWER_MIN_DIST){
+    // Level 2+: pickups ONLY on upper platforms (skip ground-level spawns)
+    if(level===1&&Math.random()<0.12&&(segStart-lastPowerX)>POWER_MIN_DIST){
       for(var di=terrainDunes.length-1;di>=0;di--){
         var td=terrainDunes[di];
         if(Math.abs(td.x-segStart)<60){
@@ -532,13 +593,13 @@ function generateWorld(upToX){
         }
       }
     }
-    if(Math.random()<0.02&&(segStart-lastHeartX)>HEART_MIN_DIST){
+    if(level===1&&Math.random()<0.02&&(segStart-lastHeartX)>HEART_MIN_DIST){
       var hpx=segStart+30+Math.random()*40;
       heartPickups.push({x:hpx,y:groundYAt(hpx)-12,bob:Math.random()*6.28});
       lastHeartX=hpx;
     }
-    // Invincibility power-up: rare, on upper platform
-    if((segStart-lastInvincX)>INVINC_MIN_DIST&&Math.random()<0.08){
+    // Invincibility power-up: ONCE per level only, on upper platform
+    if(!invincSpawned[level]&&(segStart-lastInvincX)>INVINC_MIN_DIST&&Math.random()<0.12){
       var invX=segStart+25+Math.random()*35;
       var invLocalGround=groundYAt(invX);
       var invY=invLocalGround-MAX_JUMP_HEIGHT-20-Math.random()*8;
@@ -557,6 +618,11 @@ function generateWorld(upToX){
       if(!platformOverlaps(invPlatX,invPlatW,invPlatY)) platforms.push({x:invPlatX,y:invPlatY,w:invPlatW});
       invincPickups.push({x:invX,y:invY,bob:Math.random()*6.28});
       lastInvincX=invX;
+      invincSpawned[level]=true; // Only one per level
+    }
+    // Level 3: spawn torches for lighting
+    if(level===3&&Math.random()<0.15){
+      torches.push({x:segStart+20+Math.random()*60,flicker:Math.random()*6.28});
     }
   }
 }
@@ -570,13 +636,17 @@ function resetGame(){
   player.powerTimer=0;player.prevY=GROUND_Y;player.invincTimer=0;
   cam.x=0;enemies=[];projectiles=[];platforms=[];terrainDunes=[];particles=[];
   fliers=[];drops=[];droids=[];lasers=[];
+  bigworms=[];daggers=[];spiders=[];gooDrops=[];torches=[];
   heartPickups=[];powerCells=[];invincPickups=[];sandworms=[];
   score=0;maxX=60;gameTime=0;spawnTimer=SAFE_START;shakeTimer=0;lastGenX=0;lastPowerX=0;lastHeartX=0;lastInvincX=0;
   stompFlash=0;stompCooldown=0;
-  level=1;levelTransitionTimer=0;spawnPauseTimer=0;
+  level=1;levelTransitionTimer=0;spawnPauseTimer=0;pitFallTimer=0;
+  invincSpawned={1:false,2:false,3:false};
   wormTimer=WORM_MIN_INTERVAL+Math.random()*(WORM_MAX_INTERVAL-WORM_MIN_INTERVAL);
   flierTimer=5+Math.random()*3;
   droidTimer=8+Math.random()*4;
+  bigwormTimer=6+Math.random()*4;
+  spiderTimer=4+Math.random()*3;
   initWorld();
   generateWorld(cam.x+W+400);
   buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
@@ -619,6 +689,21 @@ function spawnDroid(){
   var gy=groundYAt(dx);
   droids.push({x:dx,y:gy,w:10,h:12,vx:DROID_SPEED,patrolStart:dx,
     fireTimer:1.5+Math.random()*DROID_FIRE_INTERVAL,telegraphing:false,telegraphTimer:0});
+}
+
+// Level 3 enemies
+function spawnBigworm(){
+  if(spawnPauseTimer>0) return;
+  var startX=cam.x+W+60+Math.random()*80;
+  bigworms.push({x:startX,y:GROUND_Y,vx:-BIGWORM_SPEED,length:BIGWORM_LENGTH,
+    fireTimer:1+Math.random()*BIGWORM_FIRE_INTERVAL,telegraphing:false,telegraphTimer:0});
+}
+
+function spawnSpider(){
+  if(spawnPauseTimer>0) return;
+  var sx=worldRight()+Math.random()*60;
+  spiders.push({x:sx,y:20+Math.random()*15,w:10,h:8,vx:-SPIDER_SPEED*(0.7+Math.random()*0.4),
+    dropTimer:1.5+Math.random()*SPIDER_DROP_INTERVAL,telegraphing:false,telegraphTimer:0});
 }
 
 function spawnDust(x,y,count,color){
@@ -747,6 +832,22 @@ function update(dt){
     spawnPauseTimer=SPAWN_PAUSE_TIME;
     hudLevel.textContent="LVL 2";
     hudLevel.style.color="#cc88ff";
+  }
+  // Level 3 transition with pit fall
+  if(level===2&&score>=LEVEL_3_THRESHOLD&&pitFallTimer<=0){
+    pitFallTimer=LEVEL_3_TRANSITION_TIME;
+    spawnPauseTimer=LEVEL_3_TRANSITION_TIME+0.5;
+  }
+  if(pitFallTimer>0){
+    pitFallTimer-=dt;
+    player.vy=300; // Force downward
+    if(pitFallTimer<=0){
+      level=3;
+      levelTransitionTimer=LEVEL_TRANSITION_TIME;
+      player.y=GROUND_Y;player.vy=0;player.onGround=true;
+      hudLevel.textContent="LVL 3";
+      hudLevel.style.color="#ff8844";
+    }
   }
 
   var hasPower=player.powerTimer>0;
@@ -888,6 +989,22 @@ function update(dt){
       droidTimer=6+Math.random()*5;
       spawnDroid();
     }
+  }
+
+  // Level 3 enemies (harder, endless)
+  if(level===3){
+    bigwormTimer-=dt;
+    if(bigwormTimer<=0){
+      bigwormTimer=4+Math.random()*3;
+      spawnBigworm();
+    }
+    spiderTimer-=dt;
+    if(spiderTimer<=0){
+      spiderTimer=3+Math.random()*2;
+      spawnSpider();
+    }
+    // Still spawn some ships for variety
+    if(Math.random()<0.008) spawnEnemy();
   }
 
   // Props
@@ -1144,6 +1261,115 @@ function update(dt){
     }
   }
 
+  // Big Worms (Level 3) - shoot daggers
+  for(var bwi=bigworms.length-1;bwi>=0;bwi--){
+    var bw=bigworms[bwi];
+    bw.x+=bw.vx*dt;
+    bw.fireTimer-=dt;
+    if(bw.fireTimer<=BIGWORM_FIRE_TELEGRAPH&&!bw.telegraphing){
+      bw.telegraphing=true;bw.telegraphTimer=BIGWORM_FIRE_TELEGRAPH;
+    }
+    if(bw.telegraphing){
+      bw.telegraphTimer-=dt;
+      if(bw.telegraphTimer<=0){
+        bw.telegraphing=false;
+        bw.fireTimer=BIGWORM_FIRE_INTERVAL+Math.random()*1.0;
+        if(daggers.length<MAX_DAGGERS){
+          var ddir=player.x<bw.x?-1:1;
+          daggers.push({x:bw.x+ddir*10,y:GROUND_Y-8,vx:ddir*DAGGER_SPEED,vy:-30,life:3});
+        }
+      }
+    }
+    if(bw.x<cam.x-150){bigworms.splice(bwi,1);continue;}
+    var bwLeft=bw.x-bw.length/2,bwRight=bw.x+bw.length/2,bwTop=GROUND_Y-14;
+    if(checkStomp(bwTop,bwLeft,bwRight)){
+      doStomp(bw.x,GROUND_Y-7,bwTop,STOMP_BIGWORM_SCORE);
+      spawnParticles(bw.x,GROUND_Y-6,C_BIGWORM,10);
+      bigworms.splice(bwi,1);continue;
+    }
+    if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,bwLeft,bwTop,bw.length,14)){
+      if(hasInvinc){
+        score+=STOMP_BIGWORM_SCORE;
+        spawnParticles(bw.x,GROUND_Y-6,C_INVINC,10);
+        bigworms.splice(bwi,1);continue;
+      } else if(!isInvuln){
+        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+        spawnParticles(bw.x,GROUND_Y-6,C_BIGWORM,8);
+        buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+        if(player.lives<=0){gameOver();return;}
+      }
+    }
+  }
+
+  // Daggers (from big worms)
+  for(var dgi=daggers.length-1;dgi>=0;dgi--){
+    var dg=daggers[dgi];
+    dg.x+=dg.vx*dt;dg.vy+=150*dt;dg.y+=dg.vy*dt;dg.life-=dt;
+    if(dg.life<=0||dg.x<cam.x-40||dg.y>GROUND_Y+10){daggers.splice(dgi,1);continue;}
+    if(hasInvinc&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,dg.x-4,dg.y-4,8,8)){
+      spawnParticles(dg.x,dg.y,C_INVINC,4);daggers.splice(dgi,1);continue;
+    }
+    if(!isInvuln&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,dg.x-4,dg.y-4,8,8)){
+      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;
+      spawnParticles(dg.x,dg.y,C_DAGGER,6);daggers.splice(dgi,1);
+      buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+      if(player.lives<=0){gameOver();return;}
+    }
+  }
+
+  // Spiders (Level 3) - ceiling crawlers that drop goo
+  for(var spi=spiders.length-1;spi>=0;spi--){
+    var sp=spiders[spi];
+    sp.x+=sp.vx*dt;
+    sp.dropTimer-=dt;
+    if(sp.dropTimer<=SPIDER_DROP_TELEGRAPH&&!sp.telegraphing){
+      sp.telegraphing=true;sp.telegraphTimer=SPIDER_DROP_TELEGRAPH;
+    }
+    if(sp.telegraphing){
+      sp.telegraphTimer-=dt;
+      if(sp.telegraphTimer<=0){
+        sp.telegraphing=false;
+        sp.dropTimer=SPIDER_DROP_INTERVAL+Math.random()*1.5;
+        if(gooDrops.length<MAX_GOO){
+          gooDrops.push({x:sp.x,y:sp.y+4,vy:0});
+        }
+      }
+    }
+    if(sp.x<cam.x-80||sp.x>cam.x+W+150){spiders.splice(spi,1);continue;}
+    var spTop=sp.y-sp.h/2,spLeft=sp.x-sp.w/2,spRight=sp.x+sp.w/2;
+    var spx2=sp.x-sp.w/2+2,spy2=sp.y-sp.h/2+2,spw2=sp.w-4,sph2=sp.h-4;
+    // Can't stomp ceiling spiders easily, but if you jump into them...
+    if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,spx2,spy2,spw2,sph2)){
+      if(hasInvinc){
+        score+=STOMP_SPIDER_SCORE;
+        spawnParticles(sp.x,sp.y,C_INVINC,8);
+        spiders.splice(spi,1);continue;
+      } else if(!isInvuln){
+        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+        spawnParticles(sp.x,sp.y,C_SPIDER,8);spiders.splice(spi,1);
+        buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+        if(player.lives<=0){gameOver();return;}
+      }
+    }
+  }
+
+  // Goo drops (from spiders)
+  for(var gi=gooDrops.length-1;gi>=0;gi--){
+    var goo=gooDrops[gi];
+    goo.vy+=GOO_GRAVITY*dt;
+    goo.y+=goo.vy*dt;
+    if(goo.y>GROUND_Y+10){gooDrops.splice(gi,1);continue;}
+    if(hasInvinc&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,goo.x-5,goo.y-5,10,10)){
+      spawnParticles(goo.x,goo.y,C_INVINC,4);gooDrops.splice(gi,1);continue;
+    }
+    if(!isInvuln&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,goo.x-5,goo.y-5,10,10)){
+      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;
+      spawnParticles(goo.x,goo.y,C_GOO,6);gooDrops.splice(gi,1);
+      buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+      if(player.lives<=0){gameOver();return;}
+    }
+  }
+
   // Pickups
   for(var hi=heartPickups.length-1;hi>=0;hi--){
     var hp=heartPickups[hi];hp.bob+=dt*3;
@@ -1251,7 +1477,7 @@ function drawSky(){
         var t2=(t-0.65)/0.35;
         r=F(180+t2*35);g=F(115+t2*30);b=F(90+t2*10);
       }
-    } else {
+    } else if(level===2){
       // Level 2 night sky
       if(t<0.4){
         var t2=t/0.4;
@@ -1263,16 +1489,27 @@ function drawSky(){
         var t2=(t-0.7)/0.3;
         r=F(50+t2*15);g=F(40+t2*15);b=F(70+t2*10);
       }
+    } else {
+      // Level 3 cave ceiling - very dark
+      if(t<0.5){
+        var t2=t/0.5;
+        r=F(8+t2*8);g=F(5+t2*6);b=F(4+t2*4);
+      } else {
+        var t2=(t-0.5)/0.5;
+        r=F(16+t2*10);g=F(11+t2*7);b=F(8+t2*6);
+      }
     }
     R(0,i*(GROUND_Y/bands),W,Math.ceil(GROUND_Y/bands)+1,"rgb("+r+","+g+","+b+")");
   }
 
-  // Stars (brighter in Level 2)
-  for(var si=0;si<stars.length;si++){
-    var st=stars[si];
-    var twinkle=Math.sin(shimmerOffset*2+st.s*5)*0.3+0.7;
-    ctx.globalAlpha=st.b*twinkle*(level===2?0.9:0.6);
-    R(st.x,st.y,1,1,"#fff");
+  // Stars (brighter in Level 2, none in Level 3 cave)
+  if(level!==3){
+    for(var si=0;si<stars.length;si++){
+      var st=stars[si];
+      var twinkle=Math.sin(shimmerOffset*2+st.s*5)*0.3+0.7;
+      ctx.globalAlpha=st.b*twinkle*(level===2?0.9:0.6);
+      R(st.x,st.y,1,1,"#fff");
+    }
   }
   ctx.globalAlpha=1;
 
@@ -1292,7 +1529,7 @@ function drawSky(){
     ctx.globalAlpha=0.4;ctx.fillStyle="#eeddff";
     ctx.beginPath();ctx.arc(W-100,18,3,0,6.29);ctx.fill();
     ctx.globalAlpha=1;
-  } else {
+  } else if(level===2){
     // Dual moons Level 2
     // Large moon (right)
     ctx.globalAlpha=0.08;ctx.fillStyle="#aabbdd";
@@ -1312,22 +1549,25 @@ function drawSky(){
     ctx.beginPath();ctx.arc(40,25,5,0,6.29);ctx.fill();
     ctx.globalAlpha=1;
   }
+  // Level 3: no sky objects (cave ceiling)
 
-  // Clouds (level-appropriate)
-  ctx.globalAlpha=0.04;
-  var cx1=((shimmerOffset*3)%300)-40;
-  var cx2=((shimmerOffset*2+120)%340)-50;
-  var cc=level===1?"#ffeedd":"#445566";
-  R(cx1,40,60,4,cc);R(cx1+20,38,30,3,cc);
-  R(cx2,55,50,3,cc);R(cx2+15,53,25,3,cc);
-  ctx.globalAlpha=1;
+  // Clouds (level-appropriate, none in cave)
+  if(level!==3){
+    ctx.globalAlpha=0.04;
+    var cx1=((shimmerOffset*3)%300)-40;
+    var cx2=((shimmerOffset*2+120)%340)-50;
+    var cc=level===1?"#ffeedd":"#445566";
+    R(cx1,40,60,4,cc);R(cx1+20,38,30,3,cc);
+    R(cx2,55,50,3,cc);R(cx2+15,53,25,3,cc);
+    ctx.globalAlpha=1;
+  }
 }
 
 function drawParallaxDunes(){
-  var cFar=level===1?C_DUNE_FAR:C2_DUNE_FAR;
-  var cFar2=level===1?C_DUNE_FAR2:C2_DUNE_FAR2;
-  var cMid=level===1?C_DUNE_MID:C2_DUNE_MID;
-  var cNear=level===1?C_DUNE_NEAR:C2_DUNE_NEAR;
+  var cFar=level===1?C_DUNE_FAR:level===2?C2_DUNE_FAR:C3_DUNE_FAR;
+  var cFar2=level===1?C_DUNE_FAR2:level===2?C2_DUNE_FAR2:C3_DUNE_FAR2;
+  var cMid=level===1?C_DUNE_MID:level===2?C2_DUNE_MID:C3_DUNE_MID;
+  var cNear=level===1?C_DUNE_NEAR:level===2?C2_DUNE_NEAR:C3_DUNE_NEAR;
   for(var i=0;i<dunesFar.length;i++){
     var d=dunesFar[i];
     var sx=((d.x-cam.x*0.08)%(W+40)+W+40)%(W+40)-20;
@@ -1351,17 +1591,17 @@ function drawParallaxDunes(){
 }
 
 function drawGround(){
-  var cG=level===1?C_GROUND:C2_GROUND;
-  var cGD=level===1?C_GROUND_DARK:C2_GROUND_DARK;
-  var cGDP=level===1?C_GROUND_DEEPER:C2_GROUND_DEEPER;
-  var cGL=level===1?C_GROUND_LINE:C2_GROUND_LINE;
+  var cG=level===1?C_GROUND:level===2?C2_GROUND:C3_GROUND;
+  var cGD=level===1?C_GROUND_DARK:level===2?C2_GROUND_DARK:C3_GROUND_DARK;
+  var cGDP=level===1?C_GROUND_DEEPER:level===2?C2_GROUND_DEEPER:C3_GROUND_DEEPER;
+  var cGL=level===1?C_GROUND_LINE:level===2?C2_GROUND_LINE:C3_GROUND_LINE;
   R(0,GROUND_Y,W,H-GROUND_Y,cG);
   R(0,GROUND_Y,W,1,cGL);
-  R(0,GROUND_Y+1,W,1,level===1?"#d8c0a0":"#353050");
+  R(0,GROUND_Y+1,W,1,level===1?"#d8c0a0":level===2?"#353050":"#1a1008");
   R(0,GROUND_Y+8,W,H-GROUND_Y-8,cGD);
   R(0,GROUND_Y+16,W,H-GROUND_Y-16,cGDP);
-  var cSpec=level===1?C_SAND_SPEC:C2_SAND_SPEC;
-  var cSDark=level===1?C_SAND_DARK:C2_SAND_DARK;
+  var cSpec=level===1?C_SAND_SPEC:level===2?C2_SAND_SPEC:C3_SAND_SPEC;
+  var cSDark=level===1?C_SAND_DARK:level===2?C2_SAND_DARK:C3_SAND_DARK;
   for(var i=0;i<sandSpecs.length;i++){
     var s=sandSpecs[i],sx=wxf(s.x);
     if(sx>-2&&sx<W+2) R(sx,s.y,1,1,i%2===0?cSpec:cSDark);
@@ -1369,12 +1609,12 @@ function drawGround(){
 }
 
 function drawTerrainDunes(){
-  var cBase=level===1?C_TDUNE_BASE:C2_TDUNE_BASE;
-  var cInner=level===1?C_TDUNE_INNER:C2_TDUNE_INNER;
-  var cHigh=level===1?C_TDUNE_HIGHLIGHT:C2_TDUNE_HIGHLIGHT;
-  var cShad=level===1?C_TDUNE_SHADOW:C2_TDUNE_SHADOW;
-  var cCrest=level===1?C_TDUNE_CREST:C2_TDUNE_CREST;
-  var cEdge=level===1?C_TDUNE_EDGE:C2_TDUNE_EDGE;
+  var cBase=level===1?C_TDUNE_BASE:level===2?C2_TDUNE_BASE:C3_TDUNE_BASE;
+  var cInner=level===1?C_TDUNE_INNER:level===2?C2_TDUNE_INNER:C3_TDUNE_INNER;
+  var cHigh=level===1?C_TDUNE_HIGHLIGHT:level===2?C2_TDUNE_HIGHLIGHT:C3_TDUNE_HIGHLIGHT;
+  var cShad=level===1?C_TDUNE_SHADOW:level===2?C2_TDUNE_SHADOW:C3_TDUNE_SHADOW;
+  var cCrest=level===1?C_TDUNE_CREST:level===2?C2_TDUNE_CREST:C3_TDUNE_CREST;
+  var cEdge=level===1?C_TDUNE_EDGE:level===2?C2_TDUNE_EDGE:C3_TDUNE_EDGE;
   for(var i=0;i<terrainDunes.length;i++){
     var d=terrainDunes[i],sx=wxf(d.x);
     if(sx+d.w/2<-20||sx-d.w/2>W+20) continue;
@@ -1634,6 +1874,108 @@ function drawLasers(){
   }
 }
 
+// Level 3 enemies
+function drawBigworms(){
+  for(var i=0;i<bigworms.length;i++){
+    var bw=bigworms[i];
+    var sx=wxf(bw.x);
+    if(sx<-100||sx>W+100) continue;
+    var segments=8;
+    var segLen=bw.length/segments;
+    for(var si=0;si<segments;si++){
+      var segX=sx+(si*segLen-bw.length/2);
+      var segH=7+Math.sin((si/segments)*Math.PI)*7;
+      var segW=segLen+1;
+      var cr=F(100-si*5),cg=F(60-si*4),cb=F(45-si*3);
+      ctx.fillStyle="rgb("+Math.max(cr,40)+","+Math.max(cg,25)+","+Math.max(cb,20)+")";
+      ctx.beginPath();ctx.ellipse(F(segX),GROUND_Y,segW/2,segH,0,Math.PI,0);ctx.fill();
+      ctx.globalAlpha=0.25;ctx.fillStyle="#aa8866";
+      ctx.fillRect(F(segX-segW/4),GROUND_Y-segH,F(segW/2),1);ctx.globalAlpha=1;
+    }
+    var headX=sx-bw.length/2;
+    ctx.fillStyle=C_BIGWORM;
+    ctx.beginPath();ctx.arc(F(headX),GROUND_Y-6,6,0,6.29);ctx.fill();
+    R(F(headX)-3,GROUND_Y-9,3,2,bw.telegraphing?"#ff2222":C_BIGWORM_EYE);
+    // Mandibles
+    R(F(headX)-6,GROUND_Y-4,3,2,C_BIGWORM_DARK);
+    R(F(headX)+3,GROUND_Y-4,3,2,C_BIGWORM_DARK);
+  }
+}
+
+function drawDaggers(){
+  for(var i=0;i<daggers.length;i++){
+    var dg=daggers[i],sx=wxf(dg.x),sy=dg.y;
+    if(sx<-10||sx>W+10) continue;
+    ctx.globalAlpha=0.3;ctx.fillStyle=C_DAGGER_GLOW;
+    ctx.beginPath();ctx.arc(F(sx),F(sy),6,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+    // Dagger shape
+    R(sx-1,sy-5,2,8,C_DAGGER);
+    R(sx-2,sy-3,4,2,"#cc8855");
+    R(sx,sy-6,1,2,"#ddaa77");
+  }
+}
+
+function drawSpiders(){
+  for(var i=0;i<spiders.length;i++){
+    var sp=spiders[i],sx=wxf(sp.x),sy=sp.y;
+    if(sx<-20||sx>W+20) continue;
+    // Body (on ceiling)
+    R(sx-4,sy-3,8,6,C_SPIDER);
+    R(sx-3,sy-2,6,4,C_SPIDER_DARK);
+    // Eyes
+    R(sx-2,sy,2,2,sp.telegraphing?"#ffff44":C_SPIDER_EYE);
+    R(sx+1,sy,2,2,sp.telegraphing?"#ffff44":C_SPIDER_EYE);
+    // Legs (4 on each side)
+    var legWiggle=Math.sin(shimmerOffset*8)*1;
+    R(sx-7,sy-1+legWiggle,3,1,C_SPIDER_DARK);
+    R(sx-6,sy+1-legWiggle,2,1,C_SPIDER_DARK);
+    R(sx+4,sy-1-legWiggle,3,1,C_SPIDER_DARK);
+    R(sx+4,sy+1+legWiggle,2,1,C_SPIDER_DARK);
+    // Thread to ceiling
+    ctx.globalAlpha=0.3;
+    R(sx,0,1,sy-3,"#888");
+    ctx.globalAlpha=1;
+  }
+}
+
+function drawGooDrops(){
+  for(var i=0;i<gooDrops.length;i++){
+    var goo=gooDrops[i],sx=wxf(goo.x),sy=goo.y;
+    if(sx<-10||sx>W+10) continue;
+    ctx.globalAlpha=0.3;ctx.fillStyle=C_GOO_GLOW;
+    ctx.beginPath();ctx.arc(F(sx),F(sy),7,0,6.29);ctx.fill();
+    ctx.globalAlpha=0.8;
+    ctx.fillStyle=C_GOO;
+    ctx.beginPath();ctx.arc(F(sx),F(sy),4,0,6.29);ctx.fill();
+    ctx.fillStyle="#88ff99";
+    ctx.beginPath();ctx.arc(F(sx),F(sy-1),2,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
+
+function drawTorches(){
+  for(var i=0;i<torches.length;i++){
+    var t=torches[i],sx=wxf(t.x);
+    if(sx<-30||sx>W+30) continue;
+    t.flicker+=0.1;
+    var flick=Math.sin(t.flicker*5)*0.15+0.85;
+    // Torch holder
+    R(sx-1,GROUND_Y-12,2,8,"#4a3020");
+    R(sx-2,GROUND_Y-14,4,3,"#3a2515");
+    // Fire glow
+    ctx.globalAlpha=0.15*flick;ctx.fillStyle=C_TORCH_GLOW;
+    ctx.beginPath();ctx.arc(F(sx),GROUND_Y-18,20,0,6.29);ctx.fill();
+    ctx.globalAlpha=0.25*flick;
+    ctx.beginPath();ctx.arc(F(sx),GROUND_Y-18,12,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+    // Fire
+    R(sx-2,GROUND_Y-20,4,6,C_TORCH);
+    R(sx-1,GROUND_Y-22,2,3,"#ffaa22");
+    R(sx,GROUND_Y-24+Math.sin(t.flicker*8),1,2,"#ffdd44");
+  }
+}
+
 function drawProjectiles(){
   for(var i=0;i<projectiles.length;i++){
     var p=projectiles[i],sx=wxf(p.x),sy=p.y;
@@ -1773,12 +2115,23 @@ function draw(){
   drawPlatforms();drawHeartPickups();drawPowerCells();drawInvincPickups();
   drawSandworms();drawEnemies();drawFliers();drawDroids();
   drawProjectiles();drawDrops();drawLasers();
+  drawBigworms();drawDaggers();drawSpiders();drawGooDrops();
+  if(level===3) drawTorches();
   drawRobot();drawParticles();
 
   // Stomp flash
   if(stompFlash>0){
     ctx.globalAlpha=stompFlash*1.5;
     ctx.fillStyle="#ffffff";
+    ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=1;
+  }
+
+  // Pit fall effect (Level 3 transition)
+  if(pitFallTimer>0){
+    var fallAlpha=pitFallTimer/LEVEL_3_TRANSITION_TIME;
+    ctx.globalAlpha=1-fallAlpha*0.5;
+    ctx.fillStyle="#000";
     ctx.fillRect(0,0,W,H);
     ctx.globalAlpha=1;
   }
@@ -1790,13 +2143,21 @@ function draw(){
     ctx.fillStyle="#000";
     ctx.fillRect(0,H/2-20,W,40);
     ctx.globalAlpha=bannerAlpha;
-    ctx.fillStyle="#cc88ff";
     ctx.font="bold 12px monospace";
     ctx.textAlign="center";
-    ctx.fillText("LEVEL 2",W/2,H/2-4);
-    ctx.fillStyle="#9966cc";
-    ctx.font="8px monospace";
-    ctx.fillText("NIGHT DESERT",W/2,H/2+10);
+    if(level===2){
+      ctx.fillStyle="#cc88ff";
+      ctx.fillText("LEVEL 2",W/2,H/2-4);
+      ctx.fillStyle="#9966cc";
+      ctx.font="8px monospace";
+      ctx.fillText("NIGHT DESERT",W/2,H/2+10);
+    } else if(level===3){
+      ctx.fillStyle="#ff8844";
+      ctx.fillText("LEVEL 3",W/2,H/2-4);
+      ctx.fillStyle="#aa6633";
+      ctx.font="8px monospace";
+      ctx.fillText("SAND CAVE - ENDLESS",W/2,H/2+10);
+    }
     ctx.textAlign="left";
     ctx.globalAlpha=1;
   }
