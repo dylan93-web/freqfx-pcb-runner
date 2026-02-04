@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>FREQ-2: Dezert Runner</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#1a1020;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
@@ -16,19 +17,22 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 @keyframes rotate-hint{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
 /* Mobile landscape styles */
 @media (pointer: coarse) {
-  .hud-heart{width:14px!important;height:14px!important}
-  #hud-hearts{gap:2px!important}
-  #hud-dash{position:fixed!important;top:8px!important;right:15px!important;bottom:auto!important;left:auto!important;transform:none!important;gap:2px!important;flex-direction:row!important;align-items:center!important;width:auto!important}
-  #hud-dash-label{font-size:8px!important;letter-spacing:0px!important}
-  .dash-pip{width:12px!important;height:5px!important;border-radius:2px!important;border-width:1px!important}
-  #hud-dash-charges{gap:1px!important}
-  #hud-center{font-size:9px!important}
-  #hud-hi{font-size:7px!important}
-  #hud-level{font-size:7px!important}
-  #hud-power{position:fixed!important;top:35px!important;right:15px!important;bottom:auto!important;left:auto!important;transform:none!important;flex-direction:column!important;align-items:center!important;width:auto!important}
-  #hud-power-label{font-size:6px!important}
-  #hud-power-bar{width:30px!important;height:3px!important}
-  #dom-hud{padding:3px 6px!important}
+  .hud-heart{width:24px!important;height:20px!important}
+  #hud-hearts{gap:4px!important}
+  #hud-dash{position:fixed!important;top:8px!important;right:12px!important;bottom:auto!important;left:auto!important;transform:none!important;gap:6px!important;flex-direction:row!important;align-items:center!important;width:auto!important}
+  #hud-dash-label{font-size:10px!important;letter-spacing:1px!important}
+  .dash-pip{width:20px!important;height:10px!important;border-width:2px!important}
+  #hud-dash-charges{gap:4px!important}
+  #hud-center{font-size:14px!important}
+  #hud-hi{font-size:10px!important}
+  #hud-level{font-size:10px!important}
+  #boss-hud{top:36px!important}
+  #boss-name{font-size:12px!important}
+  #boss-health-bar{width:200px!important;height:16px!important}
+  #hud-power{position:fixed!important;top:36px!important;right:12px!important;bottom:auto!important;left:auto!important;transform:none!important;flex-direction:column!important;align-items:center!important;width:auto!important}
+  #hud-power-label{font-size:8px!important}
+  #hud-power-bar{width:40px!important;height:8px!important}
+  #dom-hud{padding:4px 8px!important}
 }
 /* Pause button for mobile */
 #mobile-pause{display:none;position:fixed;top:6px;left:50%;transform:translateX(-50%);width:40px;height:24px;z-index:10;touch-action:manipulation;border:1px solid rgba(255,200,180,0.3);border-radius:4px;background:rgba(0,0,0,0.5);color:#ffcc99;font:bold 10px monospace;opacity:0.7}
@@ -68,31 +72,35 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 .ov-mute-btn{background:none;border:1px solid rgba(255,200,180,0.3);border-radius:4px;padding:4px 8px;font-size:14px;cursor:pointer}
 .ov-mute-btn:hover{background:rgba(255,200,180,0.1)}
 .ov-btn-small{font-size:11px;padding:6px 0;width:140px}
-/* DOM HUD */
-#dom-hud{position:absolute;top:0;left:0;width:100%;height:auto;display:none;z-index:4;pointer-events:none;padding:4px 8px;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+/* DOM HUD - SNES pixel font style (2x size) */
+#dom-hud{position:absolute;top:0;left:0;width:100%;height:auto;display:none;z-index:4;pointer-events:none;padding:8px 12px;font-family:'Press Start 2P',monospace}
 #dom-hud.visible{display:flex;justify-content:space-between;align-items:flex-start}
-#hud-left{display:flex;flex-direction:column;gap:2px}
-#hud-hearts{display:flex;gap:8px;align-items:center}
-.hud-heart{width:48px;height:48px;position:relative}
-.hud-heart svg{width:100%;height:100%;filter:drop-shadow(2px 2px 2px rgba(0,0,0,0.6))}
-.hud-heart.empty svg{opacity:0.2}
-#hud-center{color:#ffddaa;font-size:16px;font-weight:bold;letter-spacing:2px;text-shadow:2px 2px 3px rgba(0,0,0,0.9),-1px -1px 0 rgba(0,0,0,0.6),0 0 8px rgba(0,0,0,0.4)}
-#hud-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-#hud-hi{color:#ccaa88;font-size:13px;font-weight:bold;letter-spacing:1px;text-shadow:2px 2px 3px rgba(0,0,0,0.9),-1px -1px 0 rgba(0,0,0,0.6)}
-#hud-level{color:#88ccff;font-size:11px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 6px rgba(100,180,255,0.5),1px 1px 2px rgba(0,0,0,0.8)}
-/* Dash charges — 3x bigger, bottom center */
+#hud-left{display:flex;flex-direction:column;gap:6px}
+#hud-hearts{display:flex;gap:10px;align-items:center}
+.hud-heart{width:40px;height:36px;position:relative;image-rendering:pixelated}
+.hud-heart.empty{opacity:0.25}
+#hud-center{color:#ffdd88;font-size:28px;letter-spacing:2px;text-shadow:3px 3px 0 #000,4px 4px 0 rgba(0,0,0,0.5)}
+#hud-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+#hud-hi{color:#88ff88;font-size:20px;letter-spacing:2px;text-shadow:3px 3px 0 #000}
+#hud-level{color:#88ccff;font-size:20px;letter-spacing:2px;text-shadow:3px 3px 0 #000}
+/* Dash charges — SNES pixel style (2x size) */
 #hud-dash{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:20px;z-index:4;pointer-events:none}
-#hud-dash-label{font-size:36px;font-weight:bold;letter-spacing:4px;color:#44ffcc;text-shadow:0 0 12px rgba(68,255,204,0.5),2px 2px 4px rgba(0,0,0,0.9);font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+#hud-dash-label{font-family:'Press Start 2P',monospace;font-size:24px;letter-spacing:3px;color:#44ffcc;text-shadow:3px 3px 0 #000}
 #hud-dash-charges{display:flex;gap:12px;align-items:center}
-.dash-pip{width:72px;height:40px;border-radius:6px;border:3px solid rgba(68,255,204,0.4);background:rgba(0,0,0,0.5)}
-.dash-pip.full{background:#44ffcc;border-color:#44ffcc;box-shadow:0 0 12px rgba(68,255,204,0.6),0 0 6px rgba(68,255,204,0.3)}
-.dash-pip.empty{background:rgba(30,30,30,0.7);border-color:rgba(68,255,204,0.15)}
-#hud-safe{position:absolute;top:26px;left:50%;transform:translateX(-50%);font-size:13px;font-weight:bold;color:#88ddcc;letter-spacing:3px;text-shadow:0 0 8px rgba(100,220,200,0.6),2px 2px 3px rgba(0,0,0,0.8);display:none;z-index:4;pointer-events:none;font-family:ui-monospace,monospace}
-#hud-power{position:absolute;bottom:76px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:6px;z-index:4;pointer-events:none}
+.dash-pip{width:48px;height:24px;border:3px solid #44ffcc;background:rgba(0,0,0,0.6);image-rendering:pixelated}
+.dash-pip.full{background:#44ffcc;box-shadow:0 0 12px rgba(68,255,204,0.5)}
+.dash-pip.empty{background:rgba(20,20,20,0.8);border-color:rgba(68,255,204,0.3)}
+#hud-safe{position:absolute;top:50px;left:50%;transform:translateX(-50%);font-family:'Press Start 2P',monospace;font-size:16px;color:#88ddcc;letter-spacing:3px;text-shadow:3px 3px 0 #000;display:none;z-index:4;pointer-events:none}
+#boss-hud{position:absolute;top:50px;left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:8px;z-index:4;pointer-events:none}
+#boss-hud.visible{display:flex}
+#boss-name{font-family:'Press Start 2P',monospace;font-size:24px;color:#ff6644;letter-spacing:3px;text-shadow:3px 3px 0 #000}
+#boss-health-bar{width:400px;height:32px;background:#220000;border:4px solid #ff4422;overflow:hidden;image-rendering:pixelated}
+#boss-health-fill{width:100%;height:100%;background:linear-gradient(180deg,#ff6644 0%,#cc2211 50%,#ff4422 100%);transition:width 0.15s steps(10)}
+#hud-power{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;z-index:4;pointer-events:none}
 #hud-power.visible{display:flex}
-#hud-power-label{font-size:13px;font-weight:bold;letter-spacing:1px;color:#44aaff;text-shadow:0 0 6px rgba(68,170,255,0.5),1px 1px 2px rgba(0,0,0,0.8);font-family:ui-monospace,monospace}
-#hud-power-bar{width:60px;height:10px;background:rgba(0,0,0,0.5);border-radius:3px;overflow:hidden;border:1px solid rgba(68,170,255,0.3)}
-#hud-power-fill{width:100%;height:100%;background:#44aaff;border-radius:2px;transition:width 0.1s}
+#hud-power-label{font-family:'Press Start 2P',monospace;font-size:16px;letter-spacing:2px;color:#44aaff;text-shadow:3px 3px 0 #000}
+#hud-power-bar{width:100px;height:16px;background:#001122;border:3px solid #44aaff;overflow:hidden}
+#hud-power-fill{width:100%;height:100%;background:#44aaff;transition:width 0.1s steps(10)}
 </style>
 </head>
 <body>
@@ -120,6 +128,10 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
     <div id="hud-power-bar"><div id="hud-power-fill"></div></div>
   </div>
   <div id="hud-safe">SAFE</div>
+  <div id="boss-hud">
+    <div id="boss-name">CAVE WORM</div>
+    <div id="boss-health-bar"><div id="boss-health-fill"></div></div>
+  </div>
   <div id="overlay" class="active">
     <div id="scr-title" class="ov-panel">
       <div class="ov-title">FREQ-2</div>
@@ -251,27 +263,59 @@ var DROID_FIRE_TELEGRAPH=0.25;
 var LASER_SPEED=70;
 var MAX_LASERS=2;
 
-// Level 3 droids - more aggressive
-var DROID_L3_FIRE_INTERVAL=1.8;
-var MAX_LASERS_L3=4;
+// Level 3 droids - VERY aggressive
+var DROID_L3_FIRE_INTERVAL=1.0;  // Faster firing (was 1.8)
+var MAX_LASERS_L3=6;             // More lasers on screen (was 4)
 
-// Level 3 enemies
+// Level 3 enemies - harder
 // Big Worm — larger sandworm that shoots daggers
-var BIGWORM_SPEED=70;
+var BIGWORM_SPEED=85;            // Faster (was 70)
 var BIGWORM_LENGTH=36;
-var BIGWORM_FIRE_INTERVAL=2.0;
-var BIGWORM_FIRE_TELEGRAPH=0.3;
-var DAGGER_SPEED=90;
-var MAX_DAGGERS=4;
+var BIGWORM_FIRE_INTERVAL=1.5;   // Faster firing (was 2.0)
+var BIGWORM_FIRE_TELEGRAPH=0.25;
+var DAGGER_SPEED=110;            // Faster daggers (was 90)
+var MAX_DAGGERS=6;               // More daggers (was 4)
 var STOMP_BIGWORM_SCORE=15;
 
-// Spider — ceiling crawler that drops toxic goo
-var SPIDER_SPEED=30;
-var SPIDER_DROP_INTERVAL=2.5;
-var SPIDER_DROP_TELEGRAPH=0.2;
-var GOO_GRAVITY=180;
-var MAX_GOO=3;
+// Spider — ceiling crawler that drops toxic goo (harder in L3)
+var SPIDER_SPEED=40;             // Faster (was 30)
+var SPIDER_DROP_INTERVAL=1.8;    // Faster goo drops (was 2.5)
+var SPIDER_DROP_TELEGRAPH=0.15;
+var GOO_GRAVITY=220;             // Faster falling (was 180)
+var MAX_GOO=5;                   // More goo (was 3)
 var STOMP_SPIDER_SCORE=8;
+
+// === BOSS: Giant Cave Worm ===
+var BOSS_SPAWN_THRESHOLD=1000;
+var BOSS_MAX_HEALTH=5;
+var BOSS_EMERGE_TIME=0.8;
+var BOSS_IDLE_TIME=1.5;
+var BOSS_IDLE_TIME_P2=0.8;
+var BOSS_ATTACK_DURATION=1.2;
+var BOSS_HURT_TIME=0.5;
+var BOSS_TELEGRAPH_TIME=0.6;
+var BOSS_SUBMERGE_TIME=0.5;
+var BOSS_DEFEATED_TIME=3.0;
+var BOSS_EMERGE_HEIGHT=28; // Lowered so player can stomp with max jump
+var BOSS_LUNGE_SPEED=150;
+var BOSS_SEGMENTS=12;
+var BOSS_HEAD_HITBOX_W=20;
+var BOSS_HEAD_HITBOX_H=15;
+var BOSS_DEFEAT_SCORE=500;
+var BOSS_PROJ_SPEED=80;
+var BOSS_PROJ_GRAVITY=120;
+var boss={active:false,health:0,x:0,y:0,state:"inactive",timer:0,attackTimer:0,hurtTimer:0,phase:1,
+  emergeX:0,emergeY:GROUND_Y,facing:-1,telegraphing:false,currentAttack:"",lungeVx:0,lungeTarget:0,
+  spitCount:0,tremoring:false,defeated:false,defeatTimer:0,flashTimer:0,segmentOffsets:[]};
+var bossProjectiles=[];
+var bossSpawned=false;
+var bossHud,bossHealthFill;
+
+// === PLAYER LASER (Boss fight only) ===
+var playerLasers=[];
+var PLAYER_LASER_SPEED=250;
+var PLAYER_LASER_COOLDOWN=0.35;
+var playerLaserCooldown=0;
 
 // === AUDIO SYSTEM (SNES-style procedural SFX) ===
 var audioCtx=null;
@@ -379,6 +423,20 @@ function playSfx(type){
     gain.gain.exponentialRampToValueAtTime(0.001,now+0.25);
     osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
     osc.start(now);osc2.start(now);osc.stop(now+0.25);osc2.stop(now+0.25);
+  }
+  else if(type==="playerLaser"){
+    // Player blaster shot - punchy zap
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="sawtooth";
+    osc.frequency.setValueAtTime(600,now);
+    osc.frequency.exponentialRampToValueAtTime(200,now+0.15);
+    osc2.frequency.setValueAtTime(800,now);
+    osc2.frequency.exponentialRampToValueAtTime(150,now+0.1);
+    gain.gain.setValueAtTime(sfxVolume*0.3,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.18);osc2.stop(now+0.18);
   }
   else if(type==="shoot"){
     // Laser pew
@@ -502,6 +560,203 @@ function playSfx(type){
     gain.gain.exponentialRampToValueAtTime(0.001,now+0.9);
     osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
     osc.start(now);osc2.start(now);osc.stop(now+0.9);osc2.stop(now+0.9);
+  }
+  else if(type==="bossRoar"){
+    // Deep rumbling roar
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="sawtooth";osc2.type="square";
+    osc.frequency.setValueAtTime(60,now);
+    osc.frequency.exponentialRampToValueAtTime(40,now+0.5);
+    osc2.frequency.setValueAtTime(80,now);
+    osc2.frequency.exponentialRampToValueAtTime(50,now+0.4);
+    filter.type="lowpass";filter.frequency.value=150;
+    gain.gain.setValueAtTime(sfxVolume*0.5,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.6);osc2.stop(now+0.6);
+  }
+  else if(type==="bossHit"){
+    // Heavy impact with rumble
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="square";osc2.type="sawtooth";
+    osc.frequency.setValueAtTime(150,now);
+    osc.frequency.exponentialRampToValueAtTime(50,now+0.2);
+    osc2.frequency.setValueAtTime(100,now);
+    osc2.frequency.exponentialRampToValueAtTime(30,now+0.25);
+    filter.type="lowpass";filter.frequency.setValueAtTime(400,now);
+    filter.frequency.exponentialRampToValueAtTime(80,now+0.2);
+    gain.gain.setValueAtTime(sfxVolume*0.5,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.3);osc2.stop(now+0.3);
+  }
+  else if(type==="bossDeath"){
+    // Epic death sound - long descending rumble
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="sawtooth";osc2.type="square";
+    osc.frequency.setValueAtTime(100,now);
+    osc.frequency.exponentialRampToValueAtTime(20,now+1.0);
+    osc2.frequency.setValueAtTime(150,now);
+    osc2.frequency.exponentialRampToValueAtTime(25,now+0.8);
+    filter.type="lowpass";filter.frequency.setValueAtTime(300,now);
+    filter.frequency.exponentialRampToValueAtTime(50,now+1.0);
+    gain.gain.setValueAtTime(sfxVolume*0.6,now);
+    gain.gain.setValueAtTime(sfxVolume*0.5,now+0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+1.2);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+1.2);osc2.stop(now+1.2);
+  }
+  else if(type==="bossSpawn"){
+    // Rumbling emergence
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="sawtooth";osc2.type="triangle";
+    osc.frequency.setValueAtTime(30,now);
+    osc.frequency.exponentialRampToValueAtTime(80,now+0.4);
+    osc.frequency.exponentialRampToValueAtTime(50,now+0.6);
+    osc2.frequency.setValueAtTime(50,now);
+    osc2.frequency.exponentialRampToValueAtTime(100,now+0.3);
+    filter.type="lowpass";filter.frequency.value=200;
+    gain.gain.setValueAtTime(sfxVolume*0.4,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.7);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.7);osc2.stop(now+0.7);
+  }
+  else if(type==="bossRumble"){
+    // Low rumbling for burrowing telegraph
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="triangle";osc2.type="sawtooth";
+    osc.frequency.setValueAtTime(25,now);
+    osc.frequency.linearRampToValueAtTime(45,now+0.5);
+    osc2.frequency.setValueAtTime(35,now);
+    osc2.frequency.linearRampToValueAtTime(55,now+0.5);
+    filter.type="lowpass";filter.frequency.value=120;
+    gain.gain.setValueAtTime(sfxVolume*0.35,now);
+    gain.gain.linearRampToValueAtTime(sfxVolume*0.5,now+0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.6);osc2.stop(now+0.6);
+  }
+  else if(type==="bossHurt"){
+    // Heavy thud with screech
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="sawtooth";
+    osc.frequency.setValueAtTime(120,now);
+    osc.frequency.exponentialRampToValueAtTime(40,now+0.2);
+    osc2.frequency.setValueAtTime(300,now);
+    osc2.frequency.exponentialRampToValueAtTime(80,now+0.15);
+    gain.gain.setValueAtTime(sfxVolume*0.45,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.25);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.25);osc2.stop(now+0.25);
+  }
+  else if(type==="bossLunge"){
+    // Whooshing lunge
+    osc=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="sawtooth";
+    osc.frequency.setValueAtTime(150,now);
+    osc.frequency.exponentialRampToValueAtTime(400,now+0.1);
+    osc.frequency.exponentialRampToValueAtTime(100,now+0.3);
+    filter.type="bandpass";filter.frequency.value=300;filter.Q.value=3;
+    gain.gain.setValueAtTime(sfxVolume*0.35,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.35);
+    osc.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc.stop(now+0.35);
+  }
+  else if(type==="bossSpit"){
+    // Wet spitting sound
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="triangle";
+    osc.frequency.setValueAtTime(200,now);
+    osc.frequency.exponentialRampToValueAtTime(80,now+0.1);
+    osc2.frequency.setValueAtTime(300,now);
+    osc2.frequency.exponentialRampToValueAtTime(100,now+0.08);
+    gain.gain.setValueAtTime(sfxVolume*0.25,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.15);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.15);osc2.stop(now+0.15);
+  }
+  else if(type==="bossTremor"){
+    // Ground shaking rumble
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="triangle";osc2.type="sawtooth";
+    osc.frequency.setValueAtTime(40,now);
+    osc.frequency.setValueAtTime(50,now+0.2);
+    osc.frequency.setValueAtTime(35,now+0.4);
+    osc2.frequency.setValueAtTime(60,now);
+    osc2.frequency.setValueAtTime(70,now+0.2);
+    osc2.frequency.setValueAtTime(45,now+0.4);
+    filter.type="lowpass";filter.frequency.value=120;
+    gain.gain.setValueAtTime(sfxVolume*0.4,now);
+    gain.gain.setValueAtTime(sfxVolume*0.5,now+0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.6);osc2.stop(now+0.6);
+  }
+  else if(type==="bossPhase"){
+    // Angry phase transition
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="sawtooth";osc2.type="square";
+    osc.frequency.setValueAtTime(80,now);
+    osc.frequency.exponentialRampToValueAtTime(200,now+0.2);
+    osc.frequency.exponentialRampToValueAtTime(60,now+0.4);
+    osc2.frequency.setValueAtTime(100,now);
+    osc2.frequency.exponentialRampToValueAtTime(250,now+0.2);
+    gain.gain.setValueAtTime(sfxVolume*0.45,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.5);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.5);osc2.stop(now+0.5);
+  }
+  else if(type==="bossDefeat"){
+    // Dying roar
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="sawtooth";osc2.type="square";
+    osc.frequency.setValueAtTime(150,now);
+    osc.frequency.exponentialRampToValueAtTime(30,now+0.8);
+    osc2.frequency.setValueAtTime(200,now);
+    osc2.frequency.exponentialRampToValueAtTime(40,now+0.6);
+    filter.type="lowpass";filter.frequency.setValueAtTime(400,now);
+    filter.frequency.exponentialRampToValueAtTime(60,now+0.8);
+    gain.gain.setValueAtTime(sfxVolume*0.55,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+1.0);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+1.0);osc2.stop(now+1.0);
+  }
+  else if(type==="bossVictory"){
+    // Victory fanfare
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="triangle";
+    osc.frequency.setValueAtTime(392,now);
+    osc.frequency.setValueAtTime(523,now+0.12);
+    osc.frequency.setValueAtTime(659,now+0.24);
+    osc.frequency.setValueAtTime(784,now+0.36);
+    osc2.frequency.setValueAtTime(196,now);
+    osc2.frequency.setValueAtTime(262,now+0.12);
+    osc2.frequency.setValueAtTime(330,now+0.24);
+    osc2.frequency.setValueAtTime(392,now+0.36);
+    gain.gain.setValueAtTime(sfxVolume*0.35,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.6);osc2.stop(now+0.6);
   }
 }
 
@@ -676,8 +931,11 @@ var hudSafe=document.getElementById("hud-safe");
 var hudPower=document.getElementById("hud-power");
 var hudPowerLabel=document.getElementById("hud-power-label");
 var hudPowerFill=document.getElementById("hud-power-fill");
+bossHud=document.getElementById("boss-hud");
+bossHealthFill=document.getElementById("boss-health-fill");
 
-var heartSVG='<svg viewBox="0 0 10 10"><path d="M5 9L1.5 5.5C0 4 0 2 1.5 1.2C3 0.4 4.5 1.2 5 2.5C5.5 1.2 7 0.4 8.5 1.2C10 2 10 4 8.5 5.5L5 9Z" fill="#ff4466"/></svg>';
+// Pixelated SNES-style heart
+var heartSVG='<svg viewBox="0 0 10 9" style="image-rendering:pixelated"><rect x="1" y="0" width="2" height="1" fill="#ff4466"/><rect x="5" y="0" width="2" height="1" fill="#ff4466"/><rect x="0" y="1" width="4" height="1" fill="#ff4466"/><rect x="4" y="1" width="4" height="1" fill="#ff4466"/><rect x="0" y="2" width="8" height="1" fill="#ff4466"/><rect x="0" y="3" width="8" height="1" fill="#ff4466"/><rect x="1" y="4" width="6" height="1" fill="#ff4466"/><rect x="2" y="5" width="4" height="1" fill="#ff4466"/><rect x="3" y="6" width="2" height="1" fill="#ff4466"/><rect x="1" y="0" width="1" height="1" fill="#ff8899"/><rect x="5" y="0" width="1" height="1" fill="#ff8899"/><rect x="0" y="1" width="1" height="1" fill="#ff8899"/><rect x="4" y="1" width="1" height="1" fill="#ff8899"/></svg>';
 function buildHearts(count,max){
   hudHearts.innerHTML="";
   for(var i=0;i<max;i++){
@@ -703,6 +961,7 @@ var desktopHelp=
   "<b>CONTROLS:</b>\n"+
   "LEFT / RIGHT  or  A / D  =  Run\n"+
   "UP / W / SPACE  =  Jump\n"+
+  "DOWN / S  =  Crouch (duck under shots)\n"+
   "SHIFT  =  Dash (uses 1 charge)\n"+
   "ENTER  =  Pause\n\n"+
   "<b>PICKUPS:</b>\n"+
@@ -715,7 +974,8 @@ var mobileHelp=
   "You are a warrior robot in the desert.\n"+
   "Run forward, dodge enemies, collect energy!\n\n"+
   "<b>CONTROLS:</b>\n"+
-  "\u25C0 \u25B6  =  Run  |  JUMP  |  DASH\n\n"+
+  "\u25C0 \u25B6  =  Run  |  \u25BC  =  Crouch\n"+
+  "JUMP  |  DASH\n\n"+
   "<b>PICKUPS:</b>\n"+
   "Blue POWERcells  =  refill dash + boost\n"+
   "Pink hearts  =  +1 life\n"+
@@ -794,7 +1054,7 @@ if(isMobile){
         joystickTouchId=null;
         joystickValue.x=0;joystickValue.y=0;
         joystickKnob.style.left="35px";joystickKnob.style.top="35px";
-        held.left=false;held.right=false;
+        held.left=false;held.right=false;held.down=false;
         break;
       }
     }
@@ -814,6 +1074,7 @@ if(isMobile){
     // Update held state based on joystick
     held.left=joystickValue.x<-0.3;
     held.right=joystickValue.x>0.3;
+    held.down=joystickValue.y>0.5; // Crouch when pushing down
   }
 
   // Orientation check
@@ -835,7 +1096,8 @@ var cam={x:0};
 var player={x:60,y:GROUND_Y,vx:0,vy:0,onGround:true,wasOnGround:true,
   coyoteTimer:0,jumpBufferTimer:0,dashTimer:0,dashCharges:1,dashDir:1,
   invuln:0,lives:MAX_LIVES,animFrame:0,animTimer:0,facing:1,runDust:0,
-  powerTimer:0,prevY:GROUND_Y,invincTimer:0};
+  powerTimer:0,prevY:GROUND_Y,invincTimer:0,crouching:false};
+var CROUCH_HEIGHT=10; // Reduced hitbox when crouching (normal is PLAYER_H=20)
 var MAX_DASH_CHARGES=3;
 var enemies=[],projectiles=[],platforms=[],particles=[];
 var fliers=[],drops=[],droids=[],lasers=[];
@@ -852,7 +1114,7 @@ var score=0,maxX=0;
 var bestScore=parseInt(localStorage.getItem("freqfx_best"))||0;
 var gameTime=0,spawnTimer=0,wormTimer=0,flierTimer=0,droidTimer=0;
 var lastTime=0,shakeTimer=0,shimmerOffset=0;
-var held={left:false,right:false,jump:false,dash:false};
+var held={left:false,right:false,jump:false,dash:false,down:false};
 var lastGenX=0,lastPowerX=0,lastHeartX=0,lastInvincX=0;
 
 // Level system
@@ -1059,7 +1321,9 @@ function generateWorld(upToX){
       lastHeartX=hpx;
     }
     // Invincibility power-up: ONCE per level only, on upper platform
-    if(!invincSpawned[level]&&(segStart-lastInvincX)>INVINC_MIN_DIST&&Math.random()<0.12){
+    if(!invincSpawned[level]&&(segStart-lastInvincX)>INVINC_MIN_DIST&&Math.random()<0.15){
+      // Set flag FIRST to prevent any duplicate spawns
+      invincSpawned[level]=true;
       var invX=segStart+25+Math.random()*35;
       var invLocalGround=groundYAt(invX);
       var invY=invLocalGround-MAX_JUMP_HEIGHT-20-Math.random()*8;
@@ -1078,7 +1342,6 @@ function generateWorld(upToX){
       if(!platformOverlaps(invPlatX,invPlatW,invPlatY)) platforms.push({x:invPlatX,y:invPlatY,w:invPlatW});
       invincPickups.push({x:invX,y:invY,bob:Math.random()*6.28});
       lastInvincX=invX;
-      invincSpawned[level]=true; // Only one per level
     }
     // Level 3: spawn torches for lighting
     if(level===3&&Math.random()<0.15){
@@ -1093,7 +1356,7 @@ function resetGame(){
   player.coyoteTimer=0;player.jumpBufferTimer=0;
   player.dashTimer=0;player.dashCharges=1;player.invuln=SAFE_START;
   player.lives=MAX_LIVES;player.animFrame=0;player.animTimer=0;player.facing=1;player.runDust=0;
-  player.powerTimer=0;player.prevY=GROUND_Y;player.invincTimer=0;
+  player.powerTimer=0;player.prevY=GROUND_Y;player.invincTimer=0;player.crouching=false;
   cam.x=0;enemies=[];projectiles=[];platforms=[];terrainDunes=[];particles=[];
   fliers=[];drops=[];droids=[];lasers=[];
   bigworms=[];daggers=[];spiders=[];gooDrops=[];torches=[];
@@ -1107,6 +1370,15 @@ function resetGame(){
   droidTimer=8+Math.random()*4;
   bigwormTimer=6+Math.random()*4;
   spiderTimer=4+Math.random()*3;
+  // Reset boss
+  boss.active=false;boss.health=0;boss.state="inactive";boss.defeated=false;
+  boss.timer=0;boss.hurtTimer=0;boss.flashTimer=0;boss.defeatTimer=0;
+  boss.phase=1;boss.x=0;boss.y=GROUND_Y;boss.segmentOffsets=[];
+  bossSpawned=false;
+  bossProjectiles=[];
+  playerLasers=[];
+  playerLaserCooldown=0;
+  if(bossHud) bossHud.classList.remove("visible");
   initWorld();
   generateWorld(cam.x+W+400);
   buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
@@ -1184,6 +1456,429 @@ function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
   return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;
 }
 
+// === BOSS: Cave Worm System ===
+var BOSS_BURROW_TIME=0.7; // Telegraph time before emerging
+var bossArenaLeft=0,bossArenaRight=0; // Arena boundaries
+
+function spawnBoss(){
+  if(bossSpawned||boss.active) return;
+  bossSpawned=true;
+  boss.active=true;
+  boss.health=BOSS_MAX_HEALTH;
+  boss.x=cam.x+W/2+40; // Start more centered
+  boss.y=GROUND_Y;
+  boss.emergeX=boss.x;
+  boss.emergeY=GROUND_Y;
+  boss.state="burrowing"; // Start with telegraph
+  boss.timer=BOSS_BURROW_TIME;
+  boss.phase=1;
+  boss.facing=-1;
+  boss.defeated=false;
+  boss.defeatTimer=0;
+  boss.flashTimer=0;
+  boss.hurtTimer=0;
+  boss.segmentOffsets=[];
+  for(var i=0;i<BOSS_SEGMENTS;i++) boss.segmentOffsets.push(0);
+  bossProjectiles=[];
+  // Clear regular enemies and pause spawning
+  enemies=[];fliers=[];droids=[];sandworms=[];bigworms=[];spiders=[];
+  projectiles=[];lasers=[];daggers=[];gooDrops=[];drops=[];
+  spawnPauseTimer=999; // Pause indefinitely until boss defeated
+
+  // === SPAWN BOSS ARENA PLATFORMS ===
+  // Create two platforms on left and right for jumping onto worm
+  bossArenaLeft=cam.x+40;
+  bossArenaRight=cam.x+W-40;
+  var platY=GROUND_Y-25; // Platform height - good for jumping to worm
+  var platW=35;
+  // Left platform
+  platforms.push({x:bossArenaLeft,y:platY,w:platW});
+  // Right platform
+  platforms.push({x:bossArenaRight-platW,y:platY,w:platW});
+  // Middle elevated platform (optional extra)
+  platforms.push({x:cam.x+W/2-20,y:GROUND_Y-40,w:40});
+
+  // Show boss HUD
+  if(bossHud) bossHud.classList.add("visible");
+  if(bossHealthFill) bossHealthFill.style.width="100%";
+  playSfx("bossRumble"); // Rumble during burrowing telegraph
+  shakeTimer=0.3;
+}
+
+function chooseBossAttack(){
+  var attacks=["lunge","spit"];
+  if(boss.phase>=2) attacks.push("tremor");
+  var idx=Math.floor(Math.random()*attacks.length);
+  return attacks[idx];
+}
+
+function updateBoss(dt){
+  if(!boss.active) return;
+
+  // Update segment wave animation
+  for(var i=0;i<BOSS_SEGMENTS;i++){
+    boss.segmentOffsets[i]=Math.sin(gameTime*4+i*0.5)*3;
+  }
+
+  // Hurt flash countdown
+  if(boss.flashTimer>0) boss.flashTimer-=dt;
+  if(boss.hurtTimer>0) boss.hurtTimer-=dt;
+
+  // Phase check
+  if(boss.health<=2&&boss.phase===1){
+    boss.phase=2;
+    shakeTimer=0.3;
+    playSfx("bossPhase");
+  }
+
+  // Defeated state
+  if(boss.defeated){
+    boss.defeatTimer-=dt;
+    if(boss.defeatTimer<=0){
+      bossDefeated();
+    }
+    return;
+  }
+
+  boss.timer-=dt;
+
+  // === BURROWING STATE - Telegraph before emerging ===
+  if(boss.state==="burrowing"){
+    // Ground rumble effect - particles show where worm will emerge
+    var rumbleIntensity=1-boss.timer/BOSS_BURROW_TIME; // Gets stronger
+    if(Math.random()<0.3+rumbleIntensity*0.5){
+      var rx=boss.x+(Math.random()-0.5)*50*rumbleIntensity;
+      particles.push({x:rx,y:GROUND_Y-2-Math.random()*8,
+        vx:(Math.random()-0.5)*20,vy:-Math.random()*30-10,
+        life:0.3+Math.random()*0.2,color:Math.random()<0.5?"#aa9988":"#887766",size:2});
+    }
+    // Small screen shake building up
+    if(rumbleIntensity>0.5) shakeTimer=Math.max(shakeTimer,0.05);
+    if(boss.timer<=0){
+      boss.state="spawning";
+      boss.timer=BOSS_EMERGE_TIME;
+      playSfx("bossSpawn");
+      shakeTimer=0.4;
+    }
+  }
+  else if(boss.state==="spawning"){
+    // Emerging from ground
+    var progress=1-boss.timer/BOSS_EMERGE_TIME;
+    boss.y=GROUND_Y-progress*BOSS_EMERGE_HEIGHT;
+    // Dust particles
+    if(Math.random()<0.6){
+      spawnDust(boss.x+(Math.random()-0.5)*40,GROUND_Y,3,"#aa8866");
+    }
+    if(boss.timer<=0){
+      boss.state="idle";
+      boss.timer=boss.phase===2?BOSS_IDLE_TIME_P2:BOSS_IDLE_TIME;
+      boss.y=GROUND_Y-BOSS_EMERGE_HEIGHT;
+    }
+  }
+  else if(boss.state==="idle"){
+    // Face player
+    boss.facing=player.x<boss.x?-1:1;
+    if(boss.timer<=0){
+      boss.currentAttack=chooseBossAttack();
+      boss.state="telegraph";
+      boss.timer=BOSS_TELEGRAPH_TIME;
+      boss.telegraphing=true;
+    }
+  }
+  else if(boss.state==="telegraph"){
+    if(boss.timer<=0){
+      boss.telegraphing=false;
+      boss.state="attacking";
+      boss.timer=BOSS_ATTACK_DURATION;
+      // Start attack
+      if(boss.currentAttack==="lunge"){
+        boss.lungeTarget=player.x;
+        boss.lungeVx=boss.facing*BOSS_LUNGE_SPEED;
+        playSfx("bossLunge");
+      } else if(boss.currentAttack==="spit"){
+        boss.spitCount=boss.phase===2?5:3;
+        boss.attackTimer=0;
+        playSfx("bossSpit");
+      } else if(boss.currentAttack==="tremor"){
+        boss.tremoring=true;
+        shakeTimer=BOSS_ATTACK_DURATION;
+        playSfx("bossTremor");
+      }
+    }
+  }
+  else if(boss.state==="attacking"){
+    if(boss.currentAttack==="lunge"){
+      boss.x+=boss.lungeVx*dt;
+      // Stop at screen edge or past target
+      if(boss.x<cam.x+40||boss.x>cam.x+W-40){
+        boss.lungeVx=0;
+        boss.timer=0;
+      }
+    } else if(boss.currentAttack==="spit"){
+      boss.attackTimer+=dt;
+      if(boss.spitCount>0&&boss.attackTimer>0.18){
+        boss.attackTimer=0;
+        boss.spitCount--;
+        // Fire acid projectile from mouth center - sprays in arc
+        var mouthX=boss.x;
+        var mouthY=boss.y-15;
+        var dx=player.x-mouthX,dy=player.y-mouthY;
+        var dist=Math.sqrt(dx*dx+dy*dy)||1;
+        var spread=(Math.random()-0.5)*0.5; // More spread for spray effect
+        var baseAngle=Math.atan2(dy,dx);
+        var projAngle=baseAngle+spread;
+        bossProjectiles.push({
+          x:mouthX,y:mouthY,
+          vx:Math.cos(projAngle)*BOSS_PROJ_SPEED*1.1,
+          vy:Math.sin(projAngle)*BOSS_PROJ_SPEED*0.8-20, // Slight upward arc
+          life:4
+        });
+        playSfx("bossSpit");
+      }
+    } else if(boss.currentAttack==="tremor"){
+      // Tremor damages grounded player
+      if(player.onGround&&player.invuln<=0&&player.invincTimer<=0&&player.dashTimer<=0){
+        // Check if player is nearby
+        var dist=Math.abs(player.x-boss.x);
+        if(dist<120){
+          player.lives--;player.invuln=INVULN_TIME;
+          shakeTimer=0.3;playSfx("playerHit");
+          spawnParticles(player.x,player.y-8,"#aa6644",8);
+          buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+          if(player.lives<=0) return; // Will trigger gameOver in main update
+        }
+      }
+    }
+    if(boss.timer<=0){
+      boss.tremoring=false;
+      boss.state="submerging";
+      boss.timer=BOSS_SUBMERGE_TIME;
+    }
+  }
+  else if(boss.state==="submerging"){
+    var progress=boss.timer/BOSS_SUBMERGE_TIME;
+    boss.y=GROUND_Y-progress*BOSS_EMERGE_HEIGHT;
+    if(Math.random()<0.4){
+      spawnDust(boss.x+(Math.random()-0.5)*30,GROUND_Y,2,"#aa8866");
+    }
+    if(boss.timer<=0){
+      boss.state="underground";
+      boss.timer=0.8+Math.random()*0.5;
+    }
+  }
+  else if(boss.state==="underground"){
+    // Move to new position
+    var targetX=player.x+(Math.random()-0.5)*100;
+    targetX=Math.max(cam.x+60,Math.min(cam.x+W-60,targetX));
+    boss.x+=(targetX-boss.x)*dt*2;
+    if(boss.timer<=0){
+      boss.state="burrowing"; // Telegraph before emerging
+      boss.timer=BOSS_BURROW_TIME;
+      boss.emergeX=boss.x;
+      playSfx("bossRumble");
+    }
+  }
+}
+
+function updateBossProjectiles(dt){
+  for(var i=bossProjectiles.length-1;i>=0;i--){
+    var p=bossProjectiles[i];
+    p.x+=p.vx*dt;
+    p.vy+=BOSS_PROJ_GRAVITY*dt;
+    p.y+=p.vy*dt;
+    p.life-=dt;
+    if(p.life<=0||p.y>GROUND_Y+10||p.x<cam.x-50||p.x>cam.x+W+50){
+      bossProjectiles.splice(i,1);
+      continue;
+    }
+    // Collision with player (smaller hitbox when crouching)
+    var pH=player.crouching?CROUCH_HEIGHT:PLAYER_H;
+    var pr={x:player.x-PLAYER_W/2+HIT_SHRINK,y:player.y-pH+HIT_SHRINK,
+      w:PLAYER_W-HIT_SHRINK*2,h:pH-HIT_SHRINK*2};
+    if(player.invincTimer>0){
+      if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,p.x-5,p.y-5,10,10)){
+        spawnParticles(p.x,p.y,C_INVINC,4);
+        bossProjectiles.splice(i,1);continue;
+      }
+    } else if(player.invuln<=0&&player.dashTimer<=0&&player.powerTimer<=0){
+      if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,p.x-5,p.y-5,10,10)){
+        player.lives--;player.invuln=INVULN_TIME;
+        shakeTimer=0.2;playSfx("playerHit");
+        spawnParticles(p.x,p.y,"#66ff66",6);
+        bossProjectiles.splice(i,1);
+        buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+        if(player.lives<=0) return; // Will trigger gameOver in main update
+      }
+    }
+  }
+}
+
+function updatePlayerLasers(dt){
+  if(playerLaserCooldown>0) playerLaserCooldown-=dt;
+
+  for(var i=playerLasers.length-1;i>=0;i--){
+    var laser=playerLasers[i];
+    laser.x+=laser.vx*dt;
+    laser.life-=dt;
+
+    // Remove if off screen or expired
+    if(laser.life<=0||laser.x<cam.x-20||laser.x>cam.x+W+20){
+      playerLasers.splice(i,1);
+      continue;
+    }
+
+    // Check collision with boss (only when mouth is WIDE open during spit attack)
+    if(boss.active&&!boss.defeated&&boss.state!=="underground"&&boss.state!=="burrowing"){
+      var bossHitX=boss.x-20;
+      var bossHitY=boss.y-25;
+      var bossHitW=40;
+      var bossHitH=30;
+
+      if(rectsOverlap(laser.x-4,laser.y-2,8,4,bossHitX,bossHitY,bossHitW,bossHitH)){
+        // Check if mouth is WIDE open (vulnerable) - ONLY during spit attack
+        var mouthOpen=boss.state==="attacking"&&boss.currentAttack==="spit";
+
+        if(mouthOpen&&boss.hurtTimer<=0){
+          damageBoss();
+          spawnParticles(laser.x,laser.y,"#88ffff",8);
+          playerLasers.splice(i,1);
+          continue;
+        } else {
+          // Mouth closed - laser deflects
+          spawnParticles(laser.x,laser.y,"#888888",4);
+          playerLasers.splice(i,1);
+          playSfx("stomp"); // Clank sound
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function checkBossCollision(){
+  // No collision during underground or burrowing (grace period for telegraph)
+  if(!boss.active||boss.defeated||boss.state==="underground"||boss.state==="burrowing") return;
+
+  var pH=player.crouching?CROUCH_HEIGHT:PLAYER_H;
+  var pr={x:player.x-PLAYER_W/2+HIT_SHRINK,y:player.y-pH+HIT_SHRINK,
+    w:PLAYER_W-HIT_SHRINK*2,h:pH-HIT_SHRINK*2};
+  var hasPower=player.powerTimer>0;
+  var hasInvinc=player.invincTimer>0;
+  var isDashing=player.dashTimer>0;
+  var isInvuln=player.invuln>0||isDashing||hasPower||hasInvinc;
+
+  // Worm dimensions - tighter hitbox to match visual
+  var bodyWidth=28;  // Reduced from 36 for fairer collision
+  var wormTop=boss.y-8;
+  var wormLeft=boss.x-bodyWidth/2;
+  var wormRight=boss.x+bodyWidth/2;
+
+  // === EMERGE DAMAGE - Only when worm is mostly out (last 40% of emerge) ===
+  if(boss.state==="spawning"&&boss.timer<BOSS_EMERGE_TIME*0.4&&!isInvuln){
+    var distToWorm=Math.abs(player.x-boss.x);
+    if(distToWorm<bodyWidth&&player.y>boss.y-20){
+      // Player is standing where worm emerges - BIG knockback!
+      player.lives--;player.invuln=INVULN_TIME;
+      shakeTimer=0.5;playSfx("playerHit");
+      spawnParticles(player.x,player.y-8,"#cc8866",15);
+      buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+      // Launch player away dramatically
+      player.vx=(player.x<boss.x?-1:1)*180;
+      player.vy=JUMP_VEL*1.2;
+      player.onGround=false;
+      return;
+    }
+  }
+
+  // Skip other collision during emerge animation
+  if(boss.state==="spawning") return;
+
+  // NOTE: Boss can only be damaged by player lasers when mouth is open
+  // No stomp or power mode damage - must shoot it!
+
+  // === BODY COLLISION - Touching the worm body damages player ===
+  var bodyTop=boss.y-BOSS_EMERGE_HEIGHT+10;
+  var bodyBottom=boss.y;
+
+  if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,wormLeft,bodyTop,bodyWidth,bodyBottom-bodyTop)){
+    if(hasInvinc){
+      // Invincible just bounces off
+      player.vx=(player.x<boss.x?-1:1)*120;
+      return;
+    } else if(!isInvuln){
+      player.lives--;player.invuln=INVULN_TIME;
+      shakeTimer=0.35;playSfx("playerHit");
+      spawnParticles(player.x,player.y-8,"#cc8866",12);
+      buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+      // Knockback away from worm
+      player.vx=(player.x<boss.x?-1:1)*130;
+      player.vy=JUMP_VEL*0.5;
+      return; // Don't check other collision after taking damage
+    }
+  }
+
+  // === LUNGE ATTACK - Only damages if worm is actually moving AND close ===
+  if(boss.state==="attacking"&&boss.currentAttack==="lunge"&&player.invuln<=0){
+    // Only damage if worm is actually lunging (has velocity) and player is within hitbox
+    if(Math.abs(boss.lungeVx)>10){
+      var lungeHitbox={
+        x:boss.x-bodyWidth/2-3,
+        y:bodyTop,
+        w:bodyWidth+6,
+        h:bodyBottom-bodyTop+8
+      };
+      if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,lungeHitbox.x,lungeHitbox.y,lungeHitbox.w,lungeHitbox.h)){
+        player.lives--;player.invuln=INVULN_TIME;
+        shakeTimer=0.4;playSfx("playerHit");
+        spawnParticles(player.x,player.y-8,"#ffaa66",15);
+        buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+        // Strong knockback in lunge direction
+        player.vx=boss.lungeVx>0?150:-150;
+        player.vy=JUMP_VEL*0.8;
+        player.onGround=false;
+      }
+    }
+  }
+}
+
+function damageBoss(){
+  if(boss.hurtTimer>0||boss.defeated) return;
+  boss.health--;
+  boss.hurtTimer=BOSS_HURT_TIME;
+  boss.flashTimer=0.3;
+  shakeTimer=0.3;
+  playSfx("bossHurt");
+  stompFlash=0.1;
+  spawnParticles(boss.x,boss.y-25,"#ff6644",15);
+  spawnParticles(boss.x,boss.y-25,"#ffffff",5);
+  // Update health bar
+  if(bossHealthFill){
+    bossHealthFill.style.width=Math.max(0,boss.health/BOSS_MAX_HEALTH*100)+"%";
+  }
+  if(boss.health<=0){
+    boss.defeated=true;
+    boss.defeatTimer=BOSS_DEFEATED_TIME;
+    playSfx("bossDefeat");
+    shakeTimer=1.0;
+  }
+}
+
+function bossDefeated(){
+  boss.active=false;
+  score+=BOSS_DEFEAT_SCORE;
+  // Hide boss HUD
+  if(bossHud) bossHud.classList.remove("visible");
+  // Resume enemy spawning
+  spawnPauseTimer=2.0; // Brief pause before enemies return
+  // Victory particles
+  for(var i=0;i<30;i++){
+    particles.push({x:boss.x+(Math.random()-0.5)*60,y:boss.y-25+(Math.random()-0.5)*40,
+      vx:(Math.random()-0.5)*100,vy:-Math.random()*80-20,
+      life:0.5+Math.random()*0.5,color:Math.random()<0.5?"#ff8844":"#ffcc44",size:2+Math.floor(Math.random()*2)});
+  }
+  playSfx("bossVictory");
+}
+
 // === INPUT ===
 var keys={};
 function startGame(){initAudio();resetGame();state="playing";showScreen("playing");playLevelMusic(1);}
@@ -1197,6 +1892,7 @@ document.addEventListener("keydown",function(e){
     if(e.code==="ArrowLeft"||e.code==="KeyA") held.left=true;
     if(e.code==="ArrowRight"||e.code==="KeyD") held.right=true;
     if(e.code==="ArrowUp"||e.code==="KeyW"||e.code==="Space"){held.jump=true;player.jumpBufferTimer=JUMP_BUFFER_MS;}
+    if(e.code==="ArrowDown"||e.code==="KeyS") held.down=true;
     if(e.code==="ShiftLeft"||e.code==="ShiftRight") held.dash=true;
     if(e.code==="Enter"){state="paused";showScreen("paused");}
   } else if(state==="paused"){
@@ -1211,6 +1907,7 @@ document.addEventListener("keyup",function(e){
   if(e.code==="ArrowLeft"||e.code==="KeyA") held.left=false;
   if(e.code==="ArrowRight"||e.code==="KeyD") held.right=false;
   if(e.code==="ArrowUp"||e.code==="KeyW"||e.code==="Space") held.jump=false;
+  if(e.code==="ArrowDown"||e.code==="KeyS") held.down=false;
   if(e.code==="ShiftLeft"||e.code==="ShiftRight") held.dash=false;
 });
 
@@ -1314,7 +2011,7 @@ function update(dt){
   if(stompFlash>0) stompFlash=Math.max(0,stompFlash-dt);
   if(stompCooldown>0) stompCooldown=Math.max(0,stompCooldown-dt);
   if(levelTransitionTimer>0) levelTransitionTimer=Math.max(0,levelTransitionTimer-dt);
-  if(spawnPauseTimer>0) spawnPauseTimer=Math.max(0,spawnPauseTimer-dt);
+  if(spawnPauseTimer>0&&!boss.active) spawnPauseTimer=Math.max(0,spawnPauseTimer-dt);
   if(player.jumpBufferTimer>0) player.jumpBufferTimer=Math.max(0,player.jumpBufferTimer-dt*1000);
   if(player.coyoteTimer>0) player.coyoteTimer=Math.max(0,player.coyoteTimer-dt*1000);
 
@@ -1323,6 +2020,7 @@ function update(dt){
     level=2;
     levelTransitionTimer=LEVEL_TRANSITION_TIME;
     spawnPauseTimer=SPAWN_PAUSE_TIME;
+    lastInvincX=cam.x; // Reset for new level spawn distance
     playLevelMusic(2);
     playSfx("levelUp");
     hudLevel.textContent="LVL 2";
@@ -1356,6 +2054,7 @@ function update(dt){
       hudLevel.style.color="#ff8844";
       pitFallScroll=0;
       spawnPauseTimer=1.5; // Extra spawn delay after landing
+      lastInvincX=cam.x; // Reset for new level spawn distance
       // Reset spawn timers to prevent immediate spawns
       bigwormTimer=3+Math.random()*2;
       spiderTimer=2.5+Math.random()*2;
@@ -1367,22 +2066,50 @@ function update(dt){
   // Decrement Level 3 grace timer
   if(level3GraceTimer>0) level3GraceTimer-=dt;
 
+  // Boss spawn trigger - immediately when entering Level 3 (score 1000)
+  if(score>=BOSS_SPAWN_THRESHOLD&&!bossSpawned&&!boss.active){
+    spawnBoss();
+  }
+
   var hasPower=player.powerTimer>0;
   var curMaxRun=hasPower?MAX_RUN*POWER_SPEED_MULT:MAX_RUN;
   var curAccel=hasPower?MOVE_ACCEL*POWER_SPEED_MULT:MOVE_ACCEL;
 
-  if(held.dash&&player.dashTimer<=0&&player.dashCharges>0){
-    player.dashTimer=DASH_DURATION;
-    player.dashCharges--;
-    player.dashDir=player.facing;
-    playSfx("dash");
-    spawnParticles(player.x,player.y-8,C_DASH_READY,6);
-    buildDashPips(player.dashCharges,MAX_DASH_CHARGES);
+  // During boss fight: shift shoots laser. Otherwise: dash
+  if(held.dash){
+    if(boss.active&&!boss.defeated){
+      // Boss fight - shoot laser
+      if(playerLaserCooldown<=0){
+        playerLasers.push({
+          x:player.x+player.facing*6,
+          y:player.y-10,
+          vx:player.facing*PLAYER_LASER_SPEED,
+          life:2
+        });
+        playerLaserCooldown=PLAYER_LASER_COOLDOWN;
+        playSfx("playerLaser");
+      }
+    } else if(player.dashTimer<=0&&player.dashCharges>0){
+      // Normal gameplay - dash
+      player.dashTimer=DASH_DURATION;
+      player.dashCharges--;
+      player.dashDir=player.facing;
+      playSfx("dash");
+      spawnParticles(player.x,player.y-8,C_DASH_READY,6);
+      buildDashPips(player.dashCharges,MAX_DASH_CHARGES);
+    }
   }
+
+  // Crouch - only on ground, reduces hitbox to duck under projectiles
+  player.crouching=held.down&&player.onGround&&player.dashTimer<=0;
 
   var isDashing=player.dashTimer>0;
   if(isDashing){
     player.vx=DASH_SPEED*player.dashDir;
+  } else if(player.crouching){
+    // Slow down when crouching
+    if(player.vx>0) player.vx=Math.max(0,player.vx-MOVE_DECEL*2*dt);
+    else if(player.vx<0) player.vx=Math.min(0,player.vx+MOVE_DECEL*2*dt);
   } else {
     if(held.left){player.vx=Math.max(player.vx-curAccel*dt,-curMaxRun);player.facing=-1;}
     else if(held.right){player.vx=Math.min(player.vx+curAccel*dt,curMaxRun);player.facing=1;}
@@ -1513,21 +2240,22 @@ function update(dt){
   }
 
   // Level 3 enemies (cave only: big worms, spiders, red droids - NO ships/fliers)
+  // HARDER: Faster spawn rates!
   if(level===3){
     bigwormTimer-=dt;
     if(bigwormTimer<=0){
-      bigwormTimer=3.5+Math.random()*2.5;
+      bigwormTimer=2.0+Math.random()*1.5;  // Faster (was 3.5+2.5)
       spawnBigworm();
     }
     spiderTimer-=dt;
     if(spiderTimer<=0){
-      spiderTimer=2.5+Math.random()*2;
+      spiderTimer=1.5+Math.random()*1.5;   // Faster (was 2.5+2)
       spawnSpider();
     }
-    // Red droids with increased fire rate
+    // Red droids with increased fire rate - spawn more often
     droidTimer-=dt;
     if(droidTimer<=0){
-      droidTimer=4+Math.random()*3;
+      droidTimer=2.5+Math.random()*2;      // Faster (was 4+3)
       spawnDroid();
     }
   }
@@ -1564,8 +2292,9 @@ function update(dt){
   var hasInvinc=player.invincTimer>0;
   var inGracePeriod=level3GraceTimer>0||pitFallTimer>0;
   var isInvuln=player.invuln>0||isDashing||hasPower||hasInvinc||inGracePeriod;
-  var pr={x:player.x-PLAYER_W/2+HIT_SHRINK,y:player.y-PLAYER_H+HIT_SHRINK,
-    w:PLAYER_W-HIT_SHRINK*2,h:PLAYER_H-HIT_SHRINK*2};
+  var pHeight=player.crouching?CROUCH_HEIGHT:PLAYER_H;
+  var pr={x:player.x-PLAYER_W/2+HIT_SHRINK,y:player.y-pHeight+HIT_SHRINK,
+    w:PLAYER_W-HIT_SHRINK*2,h:pHeight-HIT_SHRINK*2};
 
   // Ships
   for(var i=enemies.length-1;i>=0;i--){
@@ -1939,6 +2668,15 @@ function update(dt){
       spawnParticles(inp.x,inpY,"#ffffff",8);
       invincPickups.splice(iv,1);
     }
+  }
+
+  // Boss updates
+  if(boss.active){
+    updateBoss(dt);
+    updateBossProjectiles(dt);
+    updatePlayerLasers(dt);
+    checkBossCollision();
+    if(player.lives<=0){gameOver();return;}
   }
 
   // Cleanup
@@ -2852,47 +3590,44 @@ function drawPlatforms(){
   for(var i=0;i<platforms.length;i++){
     var pl=platforms[i],sx=wxf(pl.x),sy=pl.y;
     if(sx+pl.w<-10||sx>W+10) continue;
+    // Super Star Wars style stone/brick platform - all levels with different colors
+    var outline,stone1,stone2,stone3,highlight,shadow;
     if(level===1){
-      // Super Star Wars style stone/brick platform
-      var outline="#705840";
-      var stone1="#c0a080";var stone2="#b09070";var stone3="#a08060";
-      var highlight="#d8c0a0";var shadow="#806850";
-      // Main body with outline
-      R(sx-1,sy-1,pl.w+2,8,outline);
-      R(sx,sy,pl.w,6,stone1);
-      // Top highlight edge
-      R(sx,sy,pl.w,1,highlight);
-      R(sx+1,sy+1,pl.w-2,1,"#d0b898");
-      // Bottom shadow
-      R(sx,sy+5,pl.w,1,shadow);
-      // Side shading
-      R(sx,sy,1,6,"#c8b090");R(sx+1,sy+1,1,4,"#d0b898");
-      R(sx+pl.w-1,sy,1,6,shadow);R(sx+pl.w-2,sy+1,1,4,stone2);
-      // Brick/stone pattern
-      var brickW=8;
-      for(var bx=sx+2;bx<sx+pl.w-4;bx+=brickW){
-        R(bx,sy+2,1,3,stone3);
-        if((F(bx/brickW))%2===0) R(bx+3,sy+1,1,2,stone2);
-      }
-      // Surface texture specks
-      for(var tx=sx+3;tx<sx+pl.w-3;tx+=5){
-        var ty=sy+2+((tx*7)%3);
-        R(tx,ty,1,1,((tx*3)%2)?highlight:stone3);
-      }
-      // Drop shadow
-      ctx.globalAlpha=0.15;R(sx+2,sy+7,pl.w-2,2,"#000");ctx.globalAlpha=1;
+      outline="#705840";stone1="#c0a080";stone2="#b09070";stone3="#a08060";
+      highlight="#d8c0a0";shadow="#806850";
+    } else if(level===2){
+      // Night desert - purple/blue stone
+      outline="#3a3058";stone1="#706090";stone2="#605080";stone3="#504070";
+      highlight="#908ab0";shadow="#403058";
     } else {
-      // Other levels keep original style
-      var pc1=level===2?"#504870":"#403020";
-      var pc2=level===2?"#606080":"#504030";
-      R(sx,sy,pl.w,5,pc1);
-      R(sx,sy,pl.w,1,pc2);
-      R(sx,sy+1,pl.w,1,level===2?"#585078":"#483828");
-      R(sx,sy+4,pl.w,1,level===2?"#403860":"#302018");
-      R(sx,sy,1,5,level===2?"#484068":"#383020");
-      R(sx+pl.w-1,sy,1,5,level===2?"#383058":"#282010");
-      ctx.globalAlpha=0.08;R(sx+2,sy+5,pl.w-4,2,"#000");ctx.globalAlpha=1;
+      // Cave - dark brown/gray stone
+      outline="#2a2018";stone1="#605040";stone2="#504030";stone3="#403020";
+      highlight="#807060";shadow="#302010";
     }
+    // Main body with outline
+    R(sx-1,sy-1,pl.w+2,8,outline);
+    R(sx,sy,pl.w,6,stone1);
+    // Top highlight edge
+    R(sx,sy,pl.w,1,highlight);
+    R(sx+1,sy+1,pl.w-2,1,stone2);
+    // Bottom shadow
+    R(sx,sy+5,pl.w,1,shadow);
+    // Side shading
+    R(sx,sy,1,6,stone1);R(sx+1,sy+1,1,4,highlight);
+    R(sx+pl.w-1,sy,1,6,shadow);R(sx+pl.w-2,sy+1,1,4,stone2);
+    // Brick/stone pattern
+    var brickW=8;
+    for(var bx=sx+2;bx<sx+pl.w-4;bx+=brickW){
+      R(bx,sy+2,1,3,stone3);
+      if((F(bx/brickW))%2===0) R(bx+3,sy+1,1,2,stone2);
+    }
+    // Surface texture specks
+    for(var tx=sx+3;tx<sx+pl.w-3;tx+=5){
+      var ty=sy+2+((tx*7)%3);
+      R(tx,ty,1,1,((tx*3)%2)?highlight:stone3);
+    }
+    // Drop shadow
+    ctx.globalAlpha=0.15;R(sx+2,sy+7,pl.w-2,2,"#000");ctx.globalAlpha=1;
   }
 }
 
@@ -2906,16 +3641,17 @@ function drawRobot(){
   var f=player.facing,frame=player.animFrame;
   var isDashing=player.dashTimer>0;
   var hasPower=player.powerTimer>0;
-  // Blue armored soldier with silver trim, pink visor
-  var blueDark=hasInvinc?"#aa8820":isDashing?"#115544":hasPower?"#224488":"#1a3050";
-  var blueMid=hasInvinc?"#ccaa33":isDashing?"#22aa88":hasPower?"#3366aa":"#2a5080";
-  var blueLight=hasInvinc?"#ddbb44":isDashing?"#44ccaa":hasPower?"#4488cc":"#4070a0";
-  var silver=hasInvinc?"#eecc55":isDashing?"#88ddcc":hasPower?"#99bbdd":"#a8b8c8";
-  var silverBright=hasInvinc?"#ffdd66":isDashing?"#aaeedd":hasPower?"#bbccee":"#d0dce8";
-  var visor=hasInvinc?"#ffaa44":isDashing?"#66ffcc":hasPower?"#66aaff":"#dd55aa";
-  var visorGlow=hasInvinc?"#ffcc66":isDashing?"#88ffdd":hasPower?"#88ccff":"#ff77cc";
-  var redCore=hasInvinc?"#ffcc44":isDashing?"#44ffaa":hasPower?"#4488ff":"#cc2222";
-  var outline="#101820";
+  // FREQ-2 style robot - lighter cyan blues, pink visor, humanoid shape
+  var blueDark=hasInvinc?"#aa8820":isDashing?"#115566":hasPower?"#224488":"#1a4060";
+  var blueMid=hasInvinc?"#ccaa33":isDashing?"#22aacc":hasPower?"#3388cc":"#3080b0";
+  var blueLight=hasInvinc?"#ddbb44":isDashing?"#44ddee":hasPower?"#55aaee":"#50a0d0";
+  var blueBright=hasInvinc?"#eedd55":isDashing?"#66eeff":hasPower?"#77ccff":"#70c0e8";
+  var glowEdge=hasInvinc?"#ffee66":isDashing?"#88ffff":hasPower?"#99ddff":"#90d8ff";
+  var visor=hasInvinc?"#ffaa44":isDashing?"#66ffcc":hasPower?"#66aaff":"#ff55aa";
+  var visorGlow=hasInvinc?"#ffcc66":isDashing?"#88ffee":hasPower?"#88ccff":"#ff88cc";
+  var visorDark=hasInvinc?"#cc8822":isDashing?"#44ccaa":hasPower?"#4488cc":"#cc3388";
+  var coreGlow=hasInvinc?"#ffcc44":isDashing?"#44ffcc":hasPower?"#4488ff":"#ff4488";
+  var outline="#0a1828";
   var lf=0,rf=0;
   if(frame===1){lf=-2;rf=1;}else if(frame===3){lf=1;rf=-2;}
   var bx=F(sx),by=F(sy);
@@ -2936,82 +3672,167 @@ function drawRobot(){
   } else {
     drawShadow(bx,shadowY+1,5*shadowScale);
   }
-  // HELMET - blue with silver trim stripes
-  R(bx-6,by-19,12,9,outline);
-  R(bx-5,by-18,10,7,blueDark);
-  R(bx-4,by-17,8,5,blueMid);
-  R(bx-3,by-16,6,3,blueLight);
-  // Silver stripe down helmet
-  R(bx-1,by-18,2,6,silver);R(bx-1,by-18,2,1,silverBright);
-  // Ear pieces
-  R(bx-7,by-14,2,4,outline);R(bx-6,by-13,1,3,blueDark);
-  R(bx+5,by-14,2,4,outline);R(bx+5,by-13,1,3,blueDark);
-  // VISOR - pink/magenta glow
-  if(f===1){
-    R(bx-2,by-15,7,3,outline);
-    R(bx-1,by-14,6,2,visor);
-    R(bx,by-14,4,1,visorGlow);
-    ctx.globalAlpha=0.25;R(bx-1,by-16,6,4,visorGlow);ctx.globalAlpha=1;
-  } else {
-    R(bx-5,by-15,7,3,outline);
-    R(bx-4,by-14,6,2,visor);
-    R(bx-3,by-14,4,1,visorGlow);
-    ctx.globalAlpha=0.25;R(bx-4,by-16,6,4,visorGlow);ctx.globalAlpha=1;
+
+  // CROUCHING POSE - compressed robot ducking down
+  if(player.crouching){
+    // Compact crouched body - only 10px tall
+    var cy=by; // Bottom at feet
+    // Rounded humanoid head (lowered for crouch)
+    ctx.fillStyle=outline;
+    ctx.beginPath();ctx.arc(F(bx),F(cy-7),6,0,6.29);ctx.fill();
+    ctx.fillStyle=blueMid;
+    ctx.beginPath();ctx.arc(F(bx),F(cy-7),5,0,6.29);ctx.fill();
+    ctx.fillStyle=blueLight;
+    ctx.beginPath();ctx.arc(F(bx),F(cy-8),3,0,3.14,true);ctx.fill();
+    ctx.fillStyle=blueBright;
+    ctx.beginPath();ctx.arc(F(bx),F(cy-9),2,0,3.14,true);ctx.fill();
+    // Pink visor band across face
+    var vx=f===1?bx-1:bx-4;
+    R(vx-1,cy-8,8,3,outline);
+    R(vx,cy-7,6,2,visor);
+    R(vx+1,cy-7,4,1,visorGlow);
+    // Compressed torso
+    R(bx-5,cy-4,10,4,outline);
+    R(bx-4,cy-3,8,2,blueMid);
+    R(bx-3,cy-2,6,1,blueLight);
+    R(bx-1,cy-3,2,1,coreGlow);
+    // Crouched legs (bent)
+    R(bx-5,cy-1,4,2,outline);R(bx-4,cy,2,1,blueMid);
+    R(bx+1,cy-1,4,2,outline);R(bx+2,cy,2,1,blueMid);
+    // Arms at sides
+    R(bx-8,cy-5,3,4,outline);R(bx-7,cy-4,2,2,blueMid);
+    R(bx+5,cy-5,3,4,outline);R(bx+5,cy-4,2,2,blueMid);
+    if(hasInvinc) ctx.restore();
+    return; // Skip normal drawing
   }
-  // TORSO - blue armor with silver trim
+
+  // HELMET - rounded humanoid head with gradient shading
+  ctx.fillStyle=outline;
+  ctx.beginPath();ctx.arc(F(bx),F(by-14),7,0,6.29);ctx.fill();
+  // Main head color - gradient from dark to bright
+  ctx.fillStyle=blueDark;
+  ctx.beginPath();ctx.arc(F(bx),F(by-14),6,0,6.29);ctx.fill();
+  ctx.fillStyle=blueMid;
+  ctx.beginPath();ctx.arc(F(bx),F(by-14),5,0,6.29);ctx.fill();
+  // Top highlight - lighter cyan
+  ctx.fillStyle=blueLight;
+  ctx.beginPath();ctx.arc(F(bx),F(by-16),4,0,3.14,true);ctx.fill();
+  ctx.fillStyle=blueBright;
+  ctx.beginPath();ctx.arc(F(bx),F(by-17),3,0,3.14,true);ctx.fill();
+  // Bright edge highlight
+  ctx.fillStyle=glowEdge;
+  ctx.beginPath();ctx.arc(F(bx),F(by-18),2,0,3.14,true);ctx.fill();
+  // Small ear sensors
+  R(bx-7,by-15,2,3,outline);R(bx-6,by-14,1,2,blueMid);
+  R(bx+5,by-15,2,3,outline);R(bx+5,by-14,1,2,blueMid);
+  // VISOR - pink/magenta band across face
+  if(f===1){
+    R(bx-3,by-15,9,4,outline);
+    R(bx-2,by-14,8,3,visorDark);
+    R(bx-1,by-14,7,2,visor);
+    R(bx,by-13,5,1,visorGlow);
+    ctx.globalAlpha=0.35;R(bx-2,by-16,8,5,visorGlow);ctx.globalAlpha=1;
+  } else {
+    R(bx-6,by-15,9,4,outline);
+    R(bx-5,by-14,8,3,visorDark);
+    R(bx-5,by-14,7,2,visor);
+    R(bx-4,by-13,5,1,visorGlow);
+    ctx.globalAlpha=0.35;R(bx-5,by-16,8,5,visorGlow);ctx.globalAlpha=1;
+  }
+  // TORSO - cyan armor with gradient shading
   R(bx-5,by-10,10,8,outline);
   R(bx-4,by-9,8,6,blueDark);
   R(bx-3,by-8,6,4,blueMid);
-  // Silver trim lines on chest
-  R(bx-4,by-9,1,5,silver);R(bx+3,by-9,1,5,silver);
-  R(bx-2,by-5,4,1,silver);
-  // RED CORE - glowing center
+  R(bx-2,by-7,4,2,blueLight);
+  // Edge highlights
+  R(bx-4,by-9,1,5,blueLight);R(bx+3,by-9,1,5,blueLight);
+  R(bx-3,by-9,1,2,blueBright);R(bx+2,by-9,1,2,blueBright);
+  // PINK CORE - glowing center (matches visor)
   R(bx-1,by-7,2,2,outline);
-  R(bx-1,by-7,2,2,redCore);
-  ctx.globalAlpha=0.4+Math.sin(shimmerOffset*6)*0.2;
-  R(bx-2,by-8,4,4,redCore);ctx.globalAlpha=1;
+  R(bx-1,by-7,2,2,coreGlow);
+  ctx.globalAlpha=0.5+Math.sin(shimmerOffset*6)*0.2;
+  R(bx-2,by-8,4,4,visor);ctx.globalAlpha=1;
   // Belt
-  R(bx-4,by-3,8,2,outline);R(bx-3,by-2,6,1,blueDark);
-  // SHOULDERS - large pauldrons with silver
+  R(bx-4,by-3,8,2,outline);R(bx-3,by-2,6,1,blueMid);
+  // SHOULDERS - rounded pauldrons with cyan gradient
   R(bx-10,by-11,5,5,outline);R(bx-9,by-10,4,4,blueDark);R(bx-8,by-9,3,3,blueMid);
-  R(bx-9,by-10,1,3,silver);R(bx-7,by-9,1,2,silverBright);
+  R(bx-9,by-10,1,3,blueLight);R(bx-7,by-9,1,2,blueBright);
   R(bx+5,by-11,5,5,outline);R(bx+5,by-10,4,4,blueDark);R(bx+5,by-9,3,3,blueMid);
-  R(bx+8,by-10,1,3,silver);R(bx+6,by-9,1,2,silverBright);
-  // ARMS with silver trim
+  R(bx+8,by-10,1,3,blueLight);R(bx+6,by-9,1,2,blueBright);
+  // ARMS with cyan gradient
   if(frame===4){
     R(bx-9,by-14,3,8,outline);R(bx-8,by-13,2,7,blueDark);R(bx-8,by-13,1,6,blueMid);
-    R(bx-7,by-12,1,4,silver);
+    R(bx-7,by-12,1,4,blueLight);
     R(bx+6,by-14,3,8,outline);R(bx+6,by-13,2,7,blueDark);R(bx+6,by-13,1,6,blueMid);
-    R(bx+6,by-12,1,4,silver);
-    R(bx-8,by-7,2,2,outline);R(bx-7,by-6,1,1,silver); // hand
-    R(bx+6,by-7,2,2,outline);R(bx+6,by-6,1,1,silver);
+    R(bx+6,by-12,1,4,blueLight);
+    R(bx-8,by-7,2,2,outline);R(bx-7,by-6,1,1,blueBright); // hand
+    R(bx+6,by-7,2,2,outline);R(bx+6,by-6,1,1,blueBright);
   } else {
     var ao=frame===1?-1:frame===3?1:0;
     R(bx-9,by-7+ao,3,9,outline);R(bx-8,by-6+ao,2,8,blueDark);R(bx-8,by-6+ao,1,7,blueMid);
-    R(bx-7,by-5+ao,1,5,silver);
+    R(bx-7,by-5+ao,1,5,blueLight);
     R(bx+6,by-7-ao,3,9,outline);R(bx+6,by-6-ao,2,8,blueDark);R(bx+6,by-6-ao,1,7,blueMid);
-    R(bx+6,by-5-ao,1,5,silver);
-    R(bx-8,by+ao,2,2,outline);R(bx-7,by+1+ao,1,1,silver); // hands
-    R(bx+6,by-ao,2,2,outline);R(bx+6,by+1-ao,1,1,silver);
+    R(bx+6,by-5-ao,1,5,blueLight);
+    R(bx-8,by+ao,2,2,outline);R(bx-7,by+1+ao,1,1,blueBright); // hands
+    R(bx+6,by-ao,2,2,outline);R(bx+6,by+1-ao,1,1,blueBright);
   }
-  // LEGS - blue with silver stripe
+  // BLASTER GUN - chunky sci-fi style with copper accents
+  if(boss.active&&!boss.defeated){
+    var gx=f===1?bx+6:bx-14;
+    var gy=by-7;
+    var copperDark="#8b4513";
+    var copperMid="#b87333";
+    var copperLight="#cd7f32";
+    var gunmetal="#2a2a2a";
+    var gunmetalLight="#3d3d3d";
+    // Main gun body - dark gunmetal
+    R(gx,gy,10,5,outline);
+    R(gx+1,gy+1,8,3,gunmetal);
+    R(gx+2,gy+1,6,1,gunmetalLight);
+    // Upper barrel - copper tube
+    R(gx+(f===1?8:-2),gy-1,6,3,outline);
+    R(gx+(f===1?9:-1),gy,4,2,copperDark);
+    R(gx+(f===1?9:-1),gy,4,1,copperMid);
+    // Lower barrel - copper tube
+    R(gx+(f===1?8:-2),gy+3,6,3,outline);
+    R(gx+(f===1?9:-1),gy+3,4,2,copperDark);
+    R(gx+(f===1?10:0),gy+3,2,1,copperMid);
+    // Copper accent piece on body
+    R(gx+3,gy+1,2,3,copperMid);
+    R(gx+3,gy+1,1,2,copperLight);
+    // Grip area
+    R(gx+(f===1?0:8),gy+3,2,3,outline);
+    R(gx+(f===1?0:8),gy+3,2,2,gunmetalLight);
+    // Muzzle glow when recently fired
+    if(playerLaserCooldown>PLAYER_LASER_COOLDOWN*0.7){
+      ctx.globalAlpha=0.7;
+      ctx.fillStyle="#44ffff";
+      var muzzleX=f===1?gx+14:gx-2;
+      ctx.beginPath();ctx.arc(F(muzzleX),F(gy+1),2,0,6.29);ctx.fill();
+      ctx.beginPath();ctx.arc(F(muzzleX),F(gy+4),2,0,6.29);ctx.fill();
+      ctx.globalAlpha=0.3;
+      ctx.beginPath();ctx.arc(F(muzzleX),F(gy+2),5,0,6.29);ctx.fill();
+      ctx.globalAlpha=1;
+    }
+  }
+  // LEGS - cyan gradient
   if(frame===4){
     R(bx-4,by-1,3,5,outline);R(bx-3,by,2,4,blueDark);R(bx-3,by,1,3,blueMid);
-    R(bx-2,by+1,1,2,silver);
+    R(bx-2,by+1,1,2,blueLight);
     R(bx+1,by-1,3,5,outline);R(bx+1,by,2,4,blueDark);R(bx+1,by,1,3,blueMid);
-    R(bx+2,by+1,1,2,silver);
-    R(bx-4,by+3,4,1,silver);R(bx+1,by+3,4,1,silver); // boots
+    R(bx+2,by+1,1,2,blueLight);
+    R(bx-4,by+3,4,1,blueBright);R(bx+1,by+3,4,1,blueBright); // boots
   } else {
     R(bx-5,by-1+lf,4,6+Math.abs(lf),outline);R(bx-4,by+lf,3,5+Math.abs(lf),blueDark);
-    R(bx-4,by+lf,2,4+Math.abs(lf),blueMid);R(bx-3,by+1+lf,1,3,silver);
+    R(bx-4,by+lf,2,4+Math.abs(lf),blueMid);R(bx-3,by+1+lf,1,3,blueLight);
     R(bx+1,by-1+rf,4,6+Math.abs(rf),outline);R(bx+1,by+rf,3,5+Math.abs(rf),blueDark);
-    R(bx+1,by+rf,2,4+Math.abs(rf),blueMid);R(bx+2,by+1+rf,1,3,silver);
-    // Boots with silver
-    R(bx-5,by+4+lf,5,1,outline);R(bx-4,by+3+lf,3,1,silver);R(bx-5,by+4+lf,2,1,silverBright);
-    R(bx+1,by+4+rf,5,1,outline);R(bx+1,by+3+rf,3,1,silver);R(bx+1,by+4+rf,2,1,silverBright);
+    R(bx+1,by+rf,2,4+Math.abs(rf),blueMid);R(bx+2,by+1+rf,1,3,blueLight);
+    // Boots with cyan highlight
+    R(bx-5,by+4+lf,5,1,outline);R(bx-4,by+3+lf,3,1,blueBright);R(bx-5,by+4+lf,2,1,glowEdge);
+    R(bx+1,by+4+rf,5,1,outline);R(bx+1,by+3+rf,3,1,blueBright);R(bx+1,by+4+rf,2,1,glowEdge);
   }
-  // Antenna
-  R(bx+f*3,by-20,1,2,blueDark);R(bx+f*3,by-21,1,1,silver);
+  // Antenna - small with cyan tip
+  R(bx+f*3,by-20,1,2,blueMid);R(bx+f*3,by-21,1,1,visor);
   if(isDashing){
     ctx.globalAlpha=0.4;R(bx-f*8-4,by-10,8,7,blueLight);
     ctx.globalAlpha=0.2;R(bx-f*16-3,by-8,6,4,blueLight);
@@ -3273,6 +4094,357 @@ function drawTorches(){
   }
 }
 
+// === BOSS DRAWING ===
+// Dune-style sandworm with gaping mouth and teeth
+function drawBoss(){
+  if(!boss.active) return;
+  var sx=wxf(boss.x);
+  var sy=boss.y;
+  if(sx<-100||sx>W+100) return;
+
+  // === BURROWING TELEGRAPH - Sand bulge/disturbance ===
+  if(boss.state==="burrowing"){
+    var rumbleIntensity=1-boss.timer/BOSS_BURROW_TIME;
+    var bulgeSize=20+rumbleIntensity*25;
+    var pulseOffset=Math.sin(gameTime*12)*3*rumbleIntensity;
+    // Dark crack lines radiating from center
+    ctx.strokeStyle="rgba(40,30,20,0.6)";
+    ctx.lineWidth=2;
+    for(var c=0;c<6;c++){
+      var angle=c*Math.PI/3+gameTime*2;
+      var len=8+rumbleIntensity*15;
+      ctx.beginPath();
+      ctx.moveTo(F(sx),GROUND_Y-2);
+      ctx.lineTo(F(sx+Math.cos(angle)*len),GROUND_Y-2+Math.sin(angle)*len*0.4);
+      ctx.stroke();
+    }
+    // Bulging mound of sand
+    ctx.fillStyle="#7a6a5a";
+    ctx.beginPath();
+    ctx.ellipse(F(sx),GROUND_Y-3+pulseOffset,bulgeSize,8+rumbleIntensity*6,0,Math.PI,0);
+    ctx.fill();
+    // Highlight on mound
+    ctx.fillStyle="rgba(170,150,130,0.5)";
+    ctx.beginPath();
+    ctx.ellipse(F(sx),GROUND_Y-6+pulseOffset,bulgeSize*0.7,4+rumbleIntensity*3,0,Math.PI,0);
+    ctx.fill();
+    // Warning indicator - pulsing glow
+    ctx.globalAlpha=0.3+rumbleIntensity*0.4;
+    ctx.fillStyle="#ff6644";
+    ctx.beginPath();
+    ctx.ellipse(F(sx),GROUND_Y-4,15+Math.sin(gameTime*10)*5,6,0,0,6.29);
+    ctx.fill();
+    ctx.globalAlpha=1;
+    return; // Don't draw worm body yet
+  }
+
+  if(boss.state==="underground") return;
+
+  var flashWhite=boss.flashTimer>0&&Math.sin(boss.flashTimer*40)>0;
+  // Mouth ONLY vulnerable during spit attack (wide open)
+  var isVulnerable=boss.state==="attacking"&&boss.currentAttack==="spit";
+  // Visual mouth opening: slightly open normally, wide during telegraph/attack
+  var mouthOpen=0.3;
+  if(boss.telegraphing) mouthOpen=0.6;
+  if(boss.state==="attacking"){
+    if(boss.currentAttack==="spit") mouthOpen=1.2; // Wide open = vulnerable!
+    else if(boss.currentAttack==="lunge") mouthOpen=0.8;
+  }
+
+  // Ground burst effect
+  if(boss.state==="spawning"||boss.state==="submerging"){
+    ctx.globalAlpha=0.5;
+    for(var d=0;d<12;d++){
+      var dx=sx+(Math.random()-0.5)*70;
+      var ds=2+Math.random()*4;
+      ctx.fillStyle=Math.random()<0.5?"#8a7a6a":"#6a5a4a";
+      ctx.beginPath();ctx.arc(F(dx),GROUND_Y-Math.random()*15,ds,0,6.29);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // Large shadow
+  if(boss.state!=="spawning"||boss.timer<BOSS_EMERGE_TIME*0.5){
+    ctx.globalAlpha=0.35;ctx.fillStyle="#000";
+    ctx.beginPath();ctx.ellipse(F(sx),GROUND_Y+3,40,8,0,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  var visibleHeight=GROUND_Y-sy;
+  var bodyWidth=32; // Much wider body
+
+  // Draw body segments from bottom to top
+  var segCount=16;
+  for(var i=segCount-1;i>=0;i--){
+    var t=i/segCount;
+    var segY=sy+t*visibleHeight;
+    if(segY>GROUND_Y-3) continue;
+
+    var wave=Math.sin(gameTime*2.5+i*0.4)*3*(1-t*0.5);
+    var segX=sx+wave;
+    var segW=bodyWidth*(0.7+t*0.3); // Narrower at top, wider at bottom
+    var segH=visibleHeight/segCount+2;
+
+    if(flashWhite){
+      // Flash white when hurt
+      ctx.fillStyle="#ffffff";
+      ctx.beginPath();ctx.ellipse(F(segX),F(segY),segW/2,segH/2+1,0,0,6.29);ctx.fill();
+    } else {
+      // Base segment - pale grayish flesh tone
+      var baseLight=180-t*40;
+      ctx.fillStyle="rgb("+F(baseLight)+","+F(baseLight-15)+","+F(baseLight-25)+")";
+      ctx.beginPath();ctx.ellipse(F(segX),F(segY),segW/2,segH/2+1,0,0,6.29);ctx.fill();
+
+      // Deep ridge/groove between segments
+      ctx.fillStyle="rgba(60,40,30,0.6)";
+      ctx.beginPath();ctx.ellipse(F(segX),F(segY+segH/2-1),segW/2+1,2,0,0,6.29);ctx.fill();
+
+      // Segment ridge highlight
+      ctx.fillStyle="rgba(255,240,220,0.25)";
+      ctx.beginPath();ctx.ellipse(F(segX),F(segY-segH/3),segW/2-2,2,0,Math.PI,0);ctx.fill();
+
+      // Left side shadow (3D effect)
+      ctx.fillStyle="rgba(80,50,40,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(F(segX-segW/4),F(segY),segW/4,segH/2,0,Math.PI*0.5,Math.PI*1.5);ctx.fill();
+
+      // Right side highlight
+      ctx.fillStyle="rgba(255,245,235,0.2)";
+      ctx.beginPath();
+      ctx.ellipse(F(segX+segW/4),F(segY),segW/5,segH/2.5,0,Math.PI*1.5,Math.PI*0.5);ctx.fill();
+
+      // Bumps/nodules on body
+      if(i%3===0){
+        var bumpY=segY;
+        ctx.fillStyle="rgb("+F(baseLight+10)+","+F(baseLight-5)+","+F(baseLight-15)+")";
+        ctx.beginPath();ctx.arc(F(segX-segW/3),F(bumpY),3,0,6.29);ctx.fill();
+        ctx.beginPath();ctx.arc(F(segX+segW/3),F(bumpY),3,0,6.29);ctx.fill();
+        // Bump highlights
+        ctx.fillStyle="rgba(255,250,240,0.3)";
+        ctx.beginPath();ctx.arc(F(segX-segW/3-1),F(bumpY-1),1,0,6.29);ctx.fill();
+        ctx.beginPath();ctx.arc(F(segX+segW/3-1),F(bumpY-1),1,0,6.29);ctx.fill();
+      }
+
+      // Wrinkle lines
+      if(i%2===0){
+        ctx.strokeStyle="rgba(100,70,50,0.25)";ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(F(segX-segW/3),F(segY-1));
+        ctx.quadraticCurveTo(F(segX),F(segY+2),F(segX+segW/3),F(segY-1));
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw the massive head/mouth
+  drawBossHead(sx,sy,flashWhite,mouthOpen,bodyWidth,isVulnerable);
+
+  // Defeated explosion
+  if(boss.defeated){
+    var progress=1-boss.defeatTimer/BOSS_DEFEATED_TIME;
+    ctx.globalAlpha=0.4*(1-progress);
+    ctx.fillStyle="#ff6644";
+    ctx.beginPath();ctx.arc(F(sx),F(sy-25),35+progress*50,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+    if(Math.random()<0.4){
+      spawnParticles(sx+cam.x+(Math.random()-0.5)*60,sy-30+(Math.random()-0.5)*40,
+        Math.random()<0.3?"#ffffff":Math.random()<0.5?"#ff6644":"#ffaa44",4);
+    }
+  }
+}
+
+function drawBossHead(sx,headBaseY,flashWhite,mouthOpen,bodyWidth,isVulnerable){
+  var headY=headBaseY-5;
+  var mouthRadius=bodyWidth/2+4;
+  var openAmount=mouthOpen*12; // How far mouth opens
+
+  if(flashWhite){
+    // Simple white flash
+    ctx.fillStyle="#ffffff";
+    ctx.beginPath();ctx.arc(F(sx),F(headY-10),mouthRadius+5,0,6.29);ctx.fill();
+    return;
+  }
+
+  // Outer lip/rim of mouth - pale flesh
+  ctx.fillStyle="#c8b8a8";
+  ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2),mouthRadius+6,0,6.29);ctx.fill();
+
+  // Mouth rim shadow
+  ctx.fillStyle="rgba(60,40,30,0.4)";
+  ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2+3),mouthRadius+4,0,Math.PI);ctx.fill();
+
+  // Inner mouth cavity - dark red/pink OR glowing cyan when vulnerable
+  var innerRadius=mouthRadius-2;
+  if(isVulnerable){
+    // Pulsing cyan/blue glow - SHOOT NOW!
+    var pulse=0.6+Math.sin(gameTime*10)*0.4;
+    ctx.globalAlpha=0.4*pulse;
+    ctx.fillStyle="#00ffff";
+    ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2),innerRadius+8,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+    // Cyan inner glow
+    var vGrad=ctx.createRadialGradient(sx,headY-openAmount/2,0,sx,headY-openAmount/2,innerRadius+5);
+    vGrad.addColorStop(0,"#44ffff");
+    vGrad.addColorStop(0.3,"#22aaaa");
+    vGrad.addColorStop(0.6,"#115555");
+    vGrad.addColorStop(1,"#082828");
+    ctx.fillStyle=vGrad;
+  } else {
+    var grad=ctx.createRadialGradient(sx,headY-openAmount/2,0,sx,headY-openAmount/2,innerRadius+10);
+    grad.addColorStop(0,"#2a0808");
+    grad.addColorStop(0.4,"#4a1515");
+    grad.addColorStop(0.7,"#6a2a2a");
+    grad.addColorStop(1,"#8a4a4a");
+    ctx.fillStyle=grad;
+  }
+  ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2),innerRadius+2,0,6.29);ctx.fill();
+
+  // Throat depth - darker center
+  ctx.fillStyle=isVulnerable?"#00aaaa":"#1a0505";
+  ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2+5),innerRadius/2,0,6.29);ctx.fill();
+
+  // Fleshy ridges inside mouth
+  ctx.strokeStyle=isVulnerable?"rgba(0,200,200,0.5)":"rgba(100,40,40,0.5)";ctx.lineWidth=1;
+  for(var r=0;r<3;r++){
+    var ridgeR=innerRadius-r*5-3;
+    if(ridgeR>5){
+      ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2),ridgeR,0,6.29);ctx.stroke();
+    }
+  }
+
+  // TEETH - multiple rows around the mouth opening
+  var teethCount=16;
+  var teethRows=3;
+  for(var row=0;row<teethRows;row++){
+    var toothRadius=innerRadius-row*4+2;
+    var toothLen=6-row*1.5;
+    var toothBase=3-row*0.5;
+
+    for(var t=0;t<teethCount;t++){
+      var angle=(t/teethCount)*Math.PI*2;
+      var tx=sx+Math.cos(angle)*toothRadius;
+      var ty=headY-openAmount/2+Math.sin(angle)*toothRadius;
+      var tipX=sx+Math.cos(angle)*(toothRadius-toothLen);
+      var tipY=headY-openAmount/2+Math.sin(angle)*(toothRadius-toothLen);
+
+      // Tooth base
+      ctx.fillStyle=row===0?"#e8e0d8":"#d8d0c8";
+      ctx.beginPath();
+      ctx.moveTo(F(tx-Math.sin(angle)*toothBase),F(ty+Math.cos(angle)*toothBase));
+      ctx.lineTo(F(tipX),F(tipY));
+      ctx.lineTo(F(tx+Math.sin(angle)*toothBase),F(ty-Math.cos(angle)*toothBase));
+      ctx.fill();
+
+      // Tooth highlight
+      if(row===0){
+        ctx.fillStyle="rgba(255,255,250,0.6)";
+        ctx.beginPath();ctx.arc(F(tx),F(ty),1,0,6.29);ctx.fill();
+      }
+    }
+  }
+
+  // Gum tissue between teeth rows
+  ctx.fillStyle="#8a5050";
+  ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2),innerRadius-2,0,6.29);ctx.stroke();
+
+  // Outer mouth lip detail - fleshy folds
+  for(var fold=0;fold<8;fold++){
+    var foldAngle=(fold/8)*Math.PI*2+gameTime*0.1;
+    var foldX=sx+Math.cos(foldAngle)*(mouthRadius+3);
+    var foldY=headY-openAmount/2+Math.sin(foldAngle)*(mouthRadius+3);
+    ctx.fillStyle="rgba(180,160,150,0.5)";
+    ctx.beginPath();ctx.ellipse(F(foldX),F(foldY),4,2,foldAngle,0,6.29);ctx.fill();
+  }
+
+  // Lip rim highlight
+  ctx.strokeStyle="rgba(255,245,235,0.4)";ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2),mouthRadius+5,Math.PI*1.2,Math.PI*1.8);ctx.stroke();
+
+  // Lip rim shadow
+  ctx.strokeStyle="rgba(80,50,40,0.5)";ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2),mouthRadius+5,Math.PI*0.2,Math.PI*0.8);ctx.stroke();
+
+  // Slime/drool strands when mouth open
+  if(mouthOpen>0.5){
+    ctx.strokeStyle="rgba(150,180,150,0.4)";ctx.lineWidth=1;
+    for(var s=0;s<3;s++){
+      var slimeX=sx-10+s*10;
+      ctx.beginPath();
+      ctx.moveTo(F(slimeX),F(headY-openAmount/2-innerRadius+5));
+      ctx.quadraticCurveTo(F(slimeX+Math.sin(gameTime*3+s)*3),F(headY-openAmount/2),
+        F(slimeX+2),F(headY-openAmount/2+innerRadius-5));
+      ctx.stroke();
+    }
+  }
+
+  // Acid glow in mouth when spitting
+  if(boss.currentAttack==="spit"&&boss.state==="attacking"){
+    ctx.globalAlpha=0.5+Math.sin(gameTime*10)*0.2;
+    var acidGrad=ctx.createRadialGradient(sx,headY-openAmount/2,0,sx,headY-openAmount/2,innerRadius);
+    acidGrad.addColorStop(0,"#88ff88");
+    acidGrad.addColorStop(0.5,"#44aa44");
+    acidGrad.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=acidGrad;
+    ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount/2),innerRadius,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  // Telegraph indicator (danger!)
+  if(boss.telegraphing){
+    ctx.globalAlpha=0.4+Math.sin(gameTime*15)*0.3;
+    ctx.fillStyle="#ff2222";
+    ctx.beginPath();ctx.arc(F(sx),F(headY-openAmount-mouthRadius-15),10,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.fillStyle="#ffffff";
+    R(sx-2,headY-openAmount-mouthRadius-22,4,10,"#ffffff");
+    R(sx-2,headY-openAmount-mouthRadius-9,4,4,"#ffffff");
+  }
+}
+
+function drawBossProjectiles(){
+  for(var i=0;i<bossProjectiles.length;i++){
+    var p=bossProjectiles[i],sx=wxf(p.x),sy=p.y;
+    if(sx<-20||sx>W+20) continue;
+    // Glow
+    ctx.globalAlpha=0.25;ctx.fillStyle=C_GOO_GLOW;
+    ctx.beginPath();ctx.arc(F(sx),F(sy),8,0,6.29);ctx.fill();
+    ctx.globalAlpha=1;
+    // Acid glob
+    ctx.fillStyle="#44cc44";
+    ctx.beginPath();ctx.arc(F(sx),F(sy),4,0,6.29);ctx.fill();
+    ctx.fillStyle="#66ff66";
+    ctx.beginPath();ctx.arc(F(sx),F(sy-1),2,0,6.29);ctx.fill();
+    // Highlight
+    ctx.fillStyle="#aaffaa";
+    ctx.beginPath();ctx.arc(F(sx-1),F(sy-2),1,0,6.29);ctx.fill();
+  }
+}
+
+function drawPlayerLasers(){
+  for(var i=0;i<playerLasers.length;i++){
+    var laser=playerLasers[i];
+    var sx=wxf(laser.x),sy=laser.y;
+    if(sx<-20||sx>W+20) continue;
+    // Glow trail
+    ctx.globalAlpha=0.3;
+    ctx.fillStyle="#44ffff";
+    ctx.beginPath();
+    ctx.ellipse(F(sx-laser.vx*0.02),F(sy),12,3,0,0,6.29);
+    ctx.fill();
+    ctx.globalAlpha=1;
+    // Laser bolt core
+    ctx.fillStyle="#88ffff";
+    ctx.beginPath();
+    ctx.ellipse(F(sx),F(sy),6,2,0,0,6.29);
+    ctx.fill();
+    // Bright center
+    ctx.fillStyle="#ffffff";
+    ctx.beginPath();
+    ctx.ellipse(F(sx),F(sy),3,1,0,0,6.29);
+    ctx.fill();
+  }
+}
+
 function drawProjectiles(){
   for(var i=0;i<projectiles.length;i++){
     var p=projectiles[i],sx=wxf(p.x),sy=p.y;
@@ -3414,6 +4586,7 @@ function draw(){
   drawProjectiles();drawDrops();drawLasers();
   drawBigworms();drawDaggers();drawSpiders();drawGooDrops();
   if(level===3) drawTorches();
+  drawBoss();drawBossProjectiles();drawPlayerLasers();
   drawRobot();drawParticles();
   drawCaveOverlay();
 
