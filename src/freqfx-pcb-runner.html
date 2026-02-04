@@ -1735,19 +1735,23 @@ function drawSky(){
   for(var i=0;i<bands;i++){
     var t=i/bands;var r,g,b;
     if(level===1){
-      // Super Star Wars style warm peachy desert sky
-      if(t<0.3){
-        // Top - warm salmon/peach
-        var t2=t/0.3;
-        r=F(210+t2*15);g=F(160+t2*20);b=F(120+t2*20);
-      } else if(t<0.6){
-        // Middle - lighter warm tan
-        var t2=(t-0.3)/0.3;
-        r=F(225+t2*10);g=F(180+t2*15);b=F(140+t2*15);
+      // Desert sky - purple/pink top to soft pink/blue horizon
+      if(t<0.2){
+        // Top - soft purple/lavender
+        var t2=t/0.2;
+        r=F(175+t2*35);g=F(140+t2*30);b=F(180-t2*10);
+      } else if(t<0.45){
+        // Upper mid - pink/salmon clouds
+        var t2=(t-0.2)/0.25;
+        r=F(210+t2*20);g=F(170+t2*30);b=F(170+t2*15);
+      } else if(t<0.7){
+        // Middle - soft pink blending lighter
+        var t2=(t-0.45)/0.25;
+        r=F(230-t2*15);g=F(200+t2*15);b=F(185+t2*20);
       } else {
-        // Near horizon - warm cream blending to dunes
-        var t2=(t-0.6)/0.4;
-        r=F(235-t2*15);g=F(195+t2*5);b=F(155+t2*10);
+        // Near horizon - pale pink/blue tint standing out from tan dunes
+        var t2=(t-0.7)/0.3;
+        r=F(215-t2*10);g=F(215+t2*10);b=F(205+t2*15);
       }
     } else if(level===2){
       // Level 2 night sky
@@ -1837,88 +1841,84 @@ function drawSky(){
   }
 }
 
-// Clean rolling dune background (Level 1 only)
+// Rolling dune background (Level 1) with atmospheric haze and varied shapes
 function drawMountains(){
   if(level!==1) return;
-  var scrollX,x,h;
+  var scrollX,x,h,shade;
 
-  // Layer 1: Far dunes (slowest)
+  // Layer 1: Far dunes - very hazy/faded
   scrollX=cam.x*0.01;
-  // Base color
-  ctx.fillStyle="#d0a880";
+  ctx.fillStyle="rgba(210,195,175,0.7)";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=4){
-    h=45+Math.sin((x+scrollX)*0.015)*20+Math.sin((x+scrollX)*0.025)*12;
+    h=45+Math.sin((x+scrollX)*0.012)*18+Math.sin((x+scrollX)*0.029)*10+Math.sin((x+scrollX)*0.006)*8;
     ctx.lineTo(x,GROUND_Y-h);
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
-  // Shadow side
-  ctx.fillStyle="#a08058";
+  // Shadow
+  ctx.fillStyle="rgba(150,130,110,0.25)";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=4){
-    h=43+Math.sin((x+scrollX)*0.015)*20+Math.sin((x+scrollX)*0.025)*12;
-    var shade=Math.cos((x+scrollX)*0.015);
-    ctx.lineTo(x,GROUND_Y-(shade>0?h*0.5:h*0.85));
+    h=44+Math.sin((x+scrollX)*0.012)*18+Math.sin((x+scrollX)*0.029)*10+Math.sin((x+scrollX)*0.006)*8;
+    shade=(Math.cos((x+scrollX)*0.012)+1)/2;
+    ctx.lineTo(x,GROUND_Y-h*shade*0.5);
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
 
-  // Layer 2: Mid-far dunes
+  // Layer 2: Mid-far dunes - hazy
   scrollX=cam.x*0.02;
-  // Base color
-  ctx.fillStyle="#c89870";
+  ctx.fillStyle="rgba(200,175,145,0.8)";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=3){
-    h=35+Math.sin((x+scrollX)*0.022)*18+Math.sin((x+scrollX)*0.038)*10;
+    h=35+Math.sin((x+scrollX)*0.017)*14+Math.sin((x+scrollX)*0.039)*8+Math.sin((x+scrollX)*0.008)*6;
     ctx.lineTo(x,GROUND_Y-h);
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
-  // Shadow side
-  ctx.fillStyle="#987048";
+  // Shadow
+  ctx.fillStyle="rgba(130,100,70,0.3)";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=3){
-    h=33+Math.sin((x+scrollX)*0.022)*18+Math.sin((x+scrollX)*0.038)*10;
-    var shade=Math.cos((x+scrollX)*0.022);
-    ctx.lineTo(x,GROUND_Y-(shade>0?h*0.4:h*0.8));
+    h=34+Math.sin((x+scrollX)*0.017)*14+Math.sin((x+scrollX)*0.039)*8+Math.sin((x+scrollX)*0.008)*6;
+    shade=(Math.cos((x+scrollX)*0.017)+1)/2;
+    ctx.lineTo(x,GROUND_Y-h*shade*0.55);
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
 
-  // Layer 3: Mid dunes
+  // Layer 3: Mid dunes - clearer
   scrollX=cam.x*0.035;
-  // Base color
-  ctx.fillStyle="#d0a068";
+  ctx.fillStyle="#d5a575";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=3){
-    h=26+Math.sin((x+scrollX)*0.03)*14+Math.sin((x+scrollX)*0.05)*8;
+    h=26+Math.sin((x+scrollX)*0.023)*11+Math.sin((x+scrollX)*0.051)*6+Math.sin((x+scrollX)*0.01)*5;
     ctx.lineTo(x,GROUND_Y-h);
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
-  // Shadow side
-  ctx.fillStyle="#906838";
+  // Shadow
+  ctx.fillStyle="rgba(100,70,45,0.4)";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=3){
-    h=24+Math.sin((x+scrollX)*0.03)*14+Math.sin((x+scrollX)*0.05)*8;
-    var shade=Math.cos((x+scrollX)*0.03);
-    ctx.lineTo(x,GROUND_Y-(shade>0?h*0.35:h*0.75));
+    h=25+Math.sin((x+scrollX)*0.023)*11+Math.sin((x+scrollX)*0.051)*6+Math.sin((x+scrollX)*0.01)*5;
+    shade=(Math.cos((x+scrollX)*0.023)+1)/2;
+    ctx.lineTo(x,GROUND_Y-h*shade*0.6);
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
 
-  // Layer 4: Near dunes
+  // Layer 4: Near dunes - most saturated
   scrollX=cam.x*0.05;
-  // Base color
-  ctx.fillStyle="#c89058";
+  ctx.fillStyle="#c8925c";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=2){
-    h=18+Math.sin((x+scrollX)*0.04)*10+Math.sin((x+scrollX)*0.07)*6;
+    h=18+Math.sin((x+scrollX)*0.031)*8+Math.sin((x+scrollX)*0.067)*4+Math.sin((x+scrollX)*0.013)*4;
     ctx.lineTo(x,GROUND_Y-h);
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
-  // Shadow side
-  ctx.fillStyle="#885828";
+  // Shadow
+  ctx.fillStyle="rgba(80,50,30,0.45)";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=2){
-    h=16+Math.sin((x+scrollX)*0.04)*10+Math.sin((x+scrollX)*0.07)*6;
-    var shade=Math.cos((x+scrollX)*0.04);
-    ctx.lineTo(x,GROUND_Y-(shade>0?h*0.3:h*0.7));
+    h=17+Math.sin((x+scrollX)*0.031)*8+Math.sin((x+scrollX)*0.067)*4+Math.sin((x+scrollX)*0.013)*4;
+    shade=(Math.cos((x+scrollX)*0.031)+1)/2;
+    ctx.lineTo(x,GROUND_Y-h*shade*0.65);
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
 }
@@ -2115,76 +2115,25 @@ function drawClouds(){
 
 function drawParallaxDunes(){
   if(level===1){
-    // Super Star Wars style - detailed foreground dunes with shadows and waves
+    // Simplified foreground - just rolling dune shapes with shadow
     var scrollX=cam.x*0.1;
-    // Layer 5: Near dunes base
-    ctx.fillStyle="#d0a070";
+    // Single foreground dune layer - more tan, less orange
+    ctx.fillStyle="#c9a078";
     ctx.beginPath();ctx.moveTo(0,GROUND_Y);
-    for(var x=0;x<=W;x+=2){
-      var h=12+Math.sin((x+scrollX)*0.08)*8+Math.cos((x+scrollX)*0.11)*5;
+    for(var x=0;x<=W;x+=3){
+      var h=10+Math.sin((x+scrollX)*0.06)*6+Math.sin((x+scrollX)*0.1)*4;
       ctx.lineTo(x,GROUND_Y-h);
     }
     ctx.lineTo(W,GROUND_Y);ctx.fill();
-    // Layer 5: Deep shadow pockets
-    ctx.fillStyle="#8a6040";
+    // Shadow on dunes
+    ctx.fillStyle="rgba(90,60,40,0.32)";
     ctx.beginPath();ctx.moveTo(0,GROUND_Y);
-    for(var x=0;x<=W;x+=2){
-      var h=10+Math.sin((x+scrollX)*0.08)*8+Math.cos((x+scrollX)*0.11)*5;
-      var inShadow=Math.sin((x+scrollX)*0.075)>0.15;
-      ctx.lineTo(x,GROUND_Y-(inShadow?h*0.35:0));
+    for(var x=0;x<=W;x+=3){
+      var h=9+Math.sin((x+scrollX)*0.06)*6+Math.sin((x+scrollX)*0.1)*4;
+      var shade=(Math.cos((x+scrollX)*0.06)+1)/2;
+      ctx.lineTo(x,GROUND_Y-h*shade*0.6);
     }
     ctx.lineTo(W,GROUND_Y);ctx.fill();
-    // Layer 5: Mid shadow
-    ctx.fillStyle="#a07848";
-    for(var i=0;i<10;i++){
-      var dx=((i*38+scrollX*0.85)%(W+60))-30;
-      var dw=28+((i*17)%18);
-      ctx.beginPath();
-      ctx.ellipse(dx+dw/2,GROUND_Y-1,dw/2,5,0,Math.PI,0);ctx.fill();
-    }
-    // Layer 5: Highlight crests
-    ctx.fillStyle="#e8c898";
-    for(var i=0;i<8;i++){
-      var dx=((i*48+scrollX*0.9+15)%(W+55))-28;
-      var dw=20+((i*13)%14);
-      ctx.beginPath();
-      ctx.ellipse(dx+dw/2,GROUND_Y-8-((i*5)%4),dw/3,2.5,0,Math.PI,0);ctx.fill();
-    }
-    // Layer 5: Wave ripple texture
-    ctx.strokeStyle="rgba(140,100,60,0.4)";ctx.lineWidth=1;
-    for(var wy=GROUND_Y-10;wy<GROUND_Y-2;wy+=2){
-      ctx.beginPath();
-      for(var x=0;x<=W;x+=4){
-        var wx=x+Math.sin((wy*3+scrollX)*0.15)*3;
-        if(x===0)ctx.moveTo(wx,wy);else ctx.lineTo(wx,wy);
-      }
-      ctx.stroke();
-    }
-    // Layer 6: Closest dune ripples with shadow
-    scrollX=cam.x*0.15;
-    ctx.fillStyle="#d8a878";
-    for(var i=0;i<14;i++){
-      var dx=((i*28+scrollX)%(W+45))-22;
-      var dw=16+((i*11)%12);
-      var dh=4+((i*7)%3);
-      ctx.beginPath();
-      ctx.ellipse(dx+dw/2,GROUND_Y-1,dw/2,dh,0,Math.PI,0);ctx.fill();
-      // Shadow on right side
-      ctx.fillStyle="#a87850";
-      ctx.beginPath();
-      ctx.ellipse(dx+dw/2+dw*0.3,GROUND_Y-1,dw/4,dh*0.7,0,Math.PI,0);ctx.fill();
-      ctx.fillStyle="#d8a878";
-    }
-    // Layer 6: Fine sand waves
-    ctx.strokeStyle="rgba(168,120,80,0.5)";
-    for(var wy=GROUND_Y-4;wy<GROUND_Y;wy+=1.5){
-      ctx.beginPath();
-      for(var x=0;x<=W;x+=3){
-        var wx=x+Math.sin((wy*4+scrollX*1.2)*0.2)*2;
-        if(x===0)ctx.moveTo(wx,wy);else ctx.lineTo(wx,wy);
-      }
-      ctx.stroke();
-    }
   } else {
     // Original code for other levels
     var cFar=level===2?C2_DUNE_FAR:C3_DUNE_FAR;
@@ -2228,57 +2177,57 @@ function drawGround(){
     R(0,GROUND_Y+9,W,5,"#d0b898");
     R(0,GROUND_Y+14,W,6,"#c8b090");
     R(0,GROUND_Y+20,W,H-GROUND_Y-20,"#c0a888");
-    // Wave texture - scrolls with world (offset by cam.x)
+    // Wave texture - scrolls with world (offset by cam.x) - reduced 20%
     var camOff=cam.x;
-    ctx.strokeStyle="rgba(180,140,100,0.35)";ctx.lineWidth=1;
-    for(var wy=GROUND_Y+3;wy<GROUND_Y+25;wy+=2){
+    ctx.strokeStyle="rgba(180,140,100,0.3)";ctx.lineWidth=1;
+    for(var wy=GROUND_Y+3;wy<GROUND_Y+25;wy+=3){
       ctx.beginPath();
-      for(var x=0;x<=W;x+=4){
+      for(var x=0;x<=W;x+=5){
         var worldX=x+camOff;
         var wx=x+Math.sin((worldX+wy*2.5)*0.12)*4;
         if(x===0)ctx.moveTo(wx,wy);else ctx.lineTo(wx,wy);
       }
       ctx.stroke();
     }
-    // Shadow wave bands - scroll with world
-    ctx.fillStyle="rgba(140,100,70,0.2)";
-    for(var band=0;band<4;band++){
-      var by=GROUND_Y+4+band*5;
+    // Shadow wave bands - scroll with world - reduced
+    ctx.fillStyle="rgba(140,100,70,0.18)";
+    for(var band=0;band<3;band++){
+      var by=GROUND_Y+4+band*6;
       ctx.beginPath();ctx.moveTo(0,by);
-      for(var x=0;x<=W;x+=6){
+      for(var x=0;x<=W;x+=8){
         var worldX=x+camOff;
         var wh=Math.sin((worldX+band*30)*0.08)*2;
         ctx.lineTo(x,by+wh);
       }
       ctx.lineTo(W,by+3);ctx.lineTo(0,by+3);ctx.fill();
     }
-    // Shadow stripes - scroll with world
-    ctx.fillStyle="rgba(120,88,56,0.25)";
-    for(var stripe=0;stripe<8;stripe++){
-      var worldStx=stripe*50;
-      var stx=worldStx-camOff%50+(stripe===0?50:0);
+    // Shadow stripes - scroll with world - reduced
+    ctx.fillStyle="rgba(120,88,56,0.2)";
+    for(var stripe=0;stripe<6;stripe++){
+      var worldStx=stripe*60;
+      var stx=worldStx-camOff%60+(stripe===0?60:0);
       if(stx>-20&&stx<W+20){
-        for(var sy=GROUND_Y+5;sy<GROUND_Y+22;sy+=3){
+        for(var sy=GROUND_Y+5;sy<GROUND_Y+22;sy+=4){
           var sw=15+Math.sin(sy*0.3)*5;
           R(stx+Math.sin(sy*0.2)*3,sy,sw,2,ctx.fillStyle);
         }
       }
     }
-    // More wave ripples - scroll with world
-    ctx.strokeStyle="rgba(160,116,76,0.4)";
-    for(var wy=GROUND_Y+6;wy<GROUND_Y+20;wy+=3){
+    // Wave ripples - scroll with world - reduced
+    ctx.strokeStyle="rgba(160,116,76,0.35)";
+    for(var wy=GROUND_Y+6;wy<GROUND_Y+20;wy+=4){
       ctx.beginPath();
-      for(var x=0;x<=W;x+=3){
+      for(var x=0;x<=W;x+=4){
         var worldX=x+camOff;
         var wx=x+Math.sin((worldX+wy*3)*0.15)*3;
         if(x===0)ctx.moveTo(wx,wy);else ctx.lineTo(wx,wy);
       }
       ctx.stroke();
     }
-    // Scattered pebbles - scroll with world
-    for(var i=0;i<40;i++){
-      var worldPx=i*25;
-      var px=worldPx-camOff%1000;
+    // Scattered pebbles - scroll with world - reduced
+    for(var i=0;i<32;i++){
+      var worldPx=i*30;
+      var px=worldPx-camOff%960;
       if(px>-5&&px<W+5){
         var py=GROUND_Y+4+((i*13)%14);
         R(px+1,py+1,2,1,"#907050");
@@ -2595,17 +2544,21 @@ function drawRobot(){
   var f=player.facing,frame=player.animFrame;
   var isDashing=player.dashTimer>0;
   var hasPower=player.powerTimer>0;
-  var body=hasInvinc?"#ffcc44":isDashing?C_DASH_READY:hasPower?"#4488cc":C_ROBOT_BODY;
-  var dark=hasInvinc?"#cc9922":isDashing?"#22aa88":hasPower?"#336699":C_ROBOT_DARK;
-  var light=hasInvinc?"#ffdd66":isDashing?"#66ddbb":hasPower?"#66aadd":C_ROBOT_LIGHT;
-  var hi=hasInvinc?"#ffee88":isDashing?"#88eedd":hasPower?"#88ccee":C_ROBOT_HI;
-  var shoulder=hasInvinc?"#ddaa33":isDashing?"#55ccaa":hasPower?"#5599cc":C_SHOULDER;
+  // Blue armored soldier with silver trim, pink visor
+  var blueDark=hasInvinc?"#aa8820":isDashing?"#115544":hasPower?"#224488":"#1a3050";
+  var blueMid=hasInvinc?"#ccaa33":isDashing?"#22aa88":hasPower?"#3366aa":"#2a5080";
+  var blueLight=hasInvinc?"#ddbb44":isDashing?"#44ccaa":hasPower?"#4488cc":"#4070a0";
+  var silver=hasInvinc?"#eecc55":isDashing?"#88ddcc":hasPower?"#99bbdd":"#a8b8c8";
+  var silverBright=hasInvinc?"#ffdd66":isDashing?"#aaeedd":hasPower?"#bbccee":"#d0dce8";
+  var visor=hasInvinc?"#ffaa44":isDashing?"#66ffcc":hasPower?"#66aaff":"#dd55aa";
+  var visorGlow=hasInvinc?"#ffcc66":isDashing?"#88ffdd":hasPower?"#88ccff":"#ff77cc";
+  var redCore=hasInvinc?"#ffcc44":isDashing?"#44ffaa":hasPower?"#4488ff":"#cc2222";
+  var outline="#101820";
   var lf=0,rf=0;
   if(frame===1){lf=-2;rf=1;}else if(frame===3){lf=1;rf=-2;}
   var bx=F(sx),by=F(sy);
   var shadowY=GROUND_Y;
   var shadowScale=Math.max(0.5,1-(shadowY-by)/60);
-  // Apply scale for invincibility
   var scaleF=hasInvinc?INVINC_SCALE:1;
   if(hasInvinc){
     drawShadow(bx,shadowY+1,7*shadowScale);
@@ -2613,87 +2566,94 @@ function drawRobot(){
     ctx.translate(bx,by);
     ctx.scale(scaleF,scaleF);
     ctx.translate(-bx,-by);
-    // Golden glow with flicker
     var flickerAlpha=0.2+Math.sin(shimmerOffset*10)*0.1;
     ctx.globalAlpha=flickerAlpha;
     ctx.fillStyle=C_INVINC;
     ctx.beginPath();ctx.ellipse(bx,by-8,14,16,0,0,6.29);ctx.fill();
-    ctx.globalAlpha=flickerAlpha*0.5;
-    ctx.fillStyle="#ffffff";
-    ctx.beginPath();ctx.ellipse(bx,by-8,10,12,0,0,6.29);ctx.fill();
     ctx.globalAlpha=1;
   } else {
     drawShadow(bx,shadowY+1,5*shadowScale);
   }
-  if(hasPower&&!hasInvinc){
-    ctx.globalAlpha=0.1+Math.sin(shimmerOffset*6)*0.05;
-    ctx.fillStyle=C_POWER;
-    ctx.beginPath();ctx.ellipse(bx,by-8,10,12,0,0,6.29);ctx.fill();
-    ctx.globalAlpha=1;
-  }
-  // SNES-style detailed robot sprite
-  var accent="#d8a020",accentDark="#a07010",outline="#183058";
-  // HEAD - detailed helmet with ridge
-  R(bx-6,by-18,12,8,outline); // head outline
-  R(bx-5,by-17,10,6,dark);R(bx-4,by-16,8,4,body);
-  R(bx-4,by-17,8,1,hi);R(bx-3,by-17,6,1,light); // top highlight
-  R(bx-5,by-18,10,1,accent); // gold trim top
-  R(bx-6,by-12,1,3,outline);R(bx+5,by-12,1,3,outline); // ear guards
-  R(bx-6,by-13,1,2,dark);R(bx+5,by-13,1,2,dark);
-  // VISOR - detailed with glow
+  // HELMET - blue with silver trim stripes
+  R(bx-6,by-19,12,9,outline);
+  R(bx-5,by-18,10,7,blueDark);
+  R(bx-4,by-17,8,5,blueMid);
+  R(bx-3,by-16,6,3,blueLight);
+  // Silver stripe down helmet
+  R(bx-1,by-18,2,6,silver);R(bx-1,by-18,2,1,silverBright);
+  // Ear pieces
+  R(bx-7,by-14,2,4,outline);R(bx-6,by-13,1,3,blueDark);
+  R(bx+5,by-14,2,4,outline);R(bx+5,by-13,1,3,blueDark);
+  // VISOR - pink/magenta glow
   if(f===1){
-    R(bx-1,by-15,6,4,outline);R(bx,by-14,5,3,"#1a4858");
-    R(bx+1,by-14,4,2,C_VISOR);R(bx+2,by-13,2,1,C_VISOR_HI);
-    ctx.globalAlpha=0.15;R(bx,by-15,6,4,C_VISOR);ctx.globalAlpha=1;
+    R(bx-2,by-15,7,3,outline);
+    R(bx-1,by-14,6,2,visor);
+    R(bx,by-14,4,1,visorGlow);
+    ctx.globalAlpha=0.25;R(bx-1,by-16,6,4,visorGlow);ctx.globalAlpha=1;
   } else {
-    R(bx-5,by-15,6,4,outline);R(bx-5,by-14,5,3,"#1a4858");
-    R(bx-4,by-14,4,2,C_VISOR);R(bx-3,by-13,2,1,C_VISOR_HI);
-    ctx.globalAlpha=0.15;R(bx-5,by-15,6,4,C_VISOR);ctx.globalAlpha=1;
+    R(bx-5,by-15,7,3,outline);
+    R(bx-4,by-14,6,2,visor);
+    R(bx-3,by-14,4,1,visorGlow);
+    ctx.globalAlpha=0.25;R(bx-4,by-16,6,4,visorGlow);ctx.globalAlpha=1;
   }
-  // TORSO - detailed chest plate
-  R(bx-5,by-10,10,8,outline);R(bx-4,by-9,8,6,dark);R(bx-3,by-8,6,4,body);
-  R(bx-2,by-7,4,2,light);R(bx-1,by-6,2,1,hi);
-  // chest detail - vent lines
-  R(bx-3,by-5,6,1,outline);R(bx-2,by-5,4,1,accentDark);
-  R(bx-1,by-4,1,1,accent);R(bx,by-4,1,1,accent);
-  // belt/waist
-  R(bx-4,by-3,8,2,outline);R(bx-3,by-2,6,1,accent);
-  // SHOULDERS - detailed pauldrons
-  R(bx-9,by-11,4,4,outline);R(bx-8,by-10,3,3,shoulder);
-  R(bx-8,by-11,3,1,hi);R(bx-8,by-10,2,1,light);
-  R(bx+5,by-11,4,4,outline);R(bx+5,by-10,3,3,shoulder);
-  R(bx+5,by-11,3,1,hi);R(bx+5,by-10,2,1,light);
-  // ARMS with joints
+  // TORSO - blue armor with silver trim
+  R(bx-5,by-10,10,8,outline);
+  R(bx-4,by-9,8,6,blueDark);
+  R(bx-3,by-8,6,4,blueMid);
+  // Silver trim lines on chest
+  R(bx-4,by-9,1,5,silver);R(bx+3,by-9,1,5,silver);
+  R(bx-2,by-5,4,1,silver);
+  // RED CORE - glowing center
+  R(bx-1,by-7,2,2,outline);
+  R(bx-1,by-7,2,2,redCore);
+  ctx.globalAlpha=0.4+Math.sin(shimmerOffset*6)*0.2;
+  R(bx-2,by-8,4,4,redCore);ctx.globalAlpha=1;
+  // Belt
+  R(bx-4,by-3,8,2,outline);R(bx-3,by-2,6,1,blueDark);
+  // SHOULDERS - large pauldrons with silver
+  R(bx-10,by-11,5,5,outline);R(bx-9,by-10,4,4,blueDark);R(bx-8,by-9,3,3,blueMid);
+  R(bx-9,by-10,1,3,silver);R(bx-7,by-9,1,2,silverBright);
+  R(bx+5,by-11,5,5,outline);R(bx+5,by-10,4,4,blueDark);R(bx+5,by-9,3,3,blueMid);
+  R(bx+8,by-10,1,3,silver);R(bx+6,by-9,1,2,silverBright);
+  // ARMS with silver trim
   if(frame===4){
-    // jumping pose - arms up
-    R(bx-9,by-14,3,6,outline);R(bx-8,by-13,2,5,dark);R(bx-8,by-13,2,2,body);
-    R(bx+6,by-14,3,6,outline);R(bx+6,by-13,2,5,dark);R(bx+6,by-13,2,2,body);
-    R(bx-8,by-9,2,1,accent); // elbow
-    R(bx+6,by-9,2,1,accent);
+    R(bx-9,by-14,3,8,outline);R(bx-8,by-13,2,7,blueDark);R(bx-8,by-13,1,6,blueMid);
+    R(bx-7,by-12,1,4,silver);
+    R(bx+6,by-14,3,8,outline);R(bx+6,by-13,2,7,blueDark);R(bx+6,by-13,1,6,blueMid);
+    R(bx+6,by-12,1,4,silver);
+    R(bx-8,by-7,2,2,outline);R(bx-7,by-6,1,1,silver); // hand
+    R(bx+6,by-7,2,2,outline);R(bx+6,by-6,1,1,silver);
   } else {
     var ao=frame===1?-1:frame===3?1:0;
-    R(bx-9,by-8+ao,3,7,outline);R(bx-8,by-7+ao,2,6,dark);R(bx-8,by-7+ao,2,2,body);
-    R(bx+6,by-8-ao,3,7,outline);R(bx+6,by-7-ao,2,6,dark);R(bx+6,by-7-ao,2,2,body);
-    R(bx-8,by-3+ao,2,1,accent);R(bx+6,by-3-ao,2,1,accent); // elbows
-    R(bx-8,by-2+ao,2,2,"#444");R(bx+6,by-2-ao,2,2,"#444"); // hands
+    R(bx-9,by-7+ao,3,9,outline);R(bx-8,by-6+ao,2,8,blueDark);R(bx-8,by-6+ao,1,7,blueMid);
+    R(bx-7,by-5+ao,1,5,silver);
+    R(bx+6,by-7-ao,3,9,outline);R(bx+6,by-6-ao,2,8,blueDark);R(bx+6,by-6-ao,1,7,blueMid);
+    R(bx+6,by-5-ao,1,5,silver);
+    R(bx-8,by+ao,2,2,outline);R(bx-7,by+1+ao,1,1,silver); // hands
+    R(bx+6,by-ao,2,2,outline);R(bx+6,by+1-ao,1,1,silver);
   }
-  // LEGS with detail
+  // LEGS - blue with silver stripe
   if(frame===4){
-    R(bx-4,by-1,3,4,outline);R(bx-3,by,2,3,dark);
-    R(bx+1,by-1,3,4,outline);R(bx+1,by,2,3,dark);
-    R(bx-4,by+2,4,1,"#333");R(bx+1,by+2,4,1,"#333"); // boots
+    R(bx-4,by-1,3,5,outline);R(bx-3,by,2,4,blueDark);R(bx-3,by,1,3,blueMid);
+    R(bx-2,by+1,1,2,silver);
+    R(bx+1,by-1,3,5,outline);R(bx+1,by,2,4,blueDark);R(bx+1,by,1,3,blueMid);
+    R(bx+2,by+1,1,2,silver);
+    R(bx-4,by+3,4,1,silver);R(bx+1,by+3,4,1,silver); // boots
   } else {
-    R(bx-5,by-1+lf,4,4+Math.abs(lf),outline);R(bx-4,by+lf,3,3+Math.abs(lf),dark);
-    R(bx+1,by-1+rf,4,4+Math.abs(rf),outline);R(bx+1,by+rf,3,3+Math.abs(rf),dark);
-    R(bx-5,by+2+lf,5,2,"#333");R(bx-5,by+2+lf,2,1,"#555"); // left boot
-    R(bx+1,by+2+rf,5,2,"#333");R(bx+1,by+2+rf,2,1,"#555"); // right boot
+    R(bx-5,by-1+lf,4,6+Math.abs(lf),outline);R(bx-4,by+lf,3,5+Math.abs(lf),blueDark);
+    R(bx-4,by+lf,2,4+Math.abs(lf),blueMid);R(bx-3,by+1+lf,1,3,silver);
+    R(bx+1,by-1+rf,4,6+Math.abs(rf),outline);R(bx+1,by+rf,3,5+Math.abs(rf),blueDark);
+    R(bx+1,by+rf,2,4+Math.abs(rf),blueMid);R(bx+2,by+1+rf,1,3,silver);
+    // Boots with silver
+    R(bx-5,by+4+lf,5,1,outline);R(bx-4,by+3+lf,3,1,silver);R(bx-5,by+4+lf,2,1,silverBright);
+    R(bx+1,by+4+rf,5,1,outline);R(bx+1,by+3+rf,3,1,silver);R(bx+1,by+4+rf,2,1,silverBright);
   }
-  // antenna
-  R(bx+f*2,by-19,1,2,light);R(bx+f*2,by-20,1,1,C_VISOR);
+  // Antenna
+  R(bx+f*3,by-20,1,2,blueDark);R(bx+f*3,by-21,1,1,silver);
   if(isDashing){
-    ctx.globalAlpha=0.4;R(bx-f*8-4,by-10,8,7,C_DASH_READY);
-    ctx.globalAlpha=0.2;R(bx-f*16-3,by-8,6,4,C_DASH_READY);
-    ctx.globalAlpha=0.1;R(bx-f*22-2,by-7,4,3,C_DASH_READY);
+    ctx.globalAlpha=0.4;R(bx-f*8-4,by-10,8,7,blueLight);
+    ctx.globalAlpha=0.2;R(bx-f*16-3,by-8,6,4,blueLight);
+    ctx.globalAlpha=0.1;R(bx-f*22-2,by-7,4,3,blueLight);
     ctx.globalAlpha=1;
   }
   if(hasInvinc) ctx.restore();
