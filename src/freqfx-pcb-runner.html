@@ -60,6 +60,14 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 .ov-go-best-dim{font:13px monospace;color:#887766;letter-spacing:1px}
 .ov-pause-title{font:bold 22px monospace;color:#ffcc88;letter-spacing:4px;text-shadow:0 0 10px rgba(255,200,160,0.4)}
 .ov-pause-hint{font:12px monospace;color:#887766;letter-spacing:1px;margin-top:4px}
+.ov-volume-section{display:flex;align-items:center;gap:8px;margin:8px 0}
+.ov-volume-label{font:11px monospace;color:#aa9988;letter-spacing:1px}
+.ov-slider{width:100px;height:6px;-webkit-appearance:none;appearance:none;background:rgba(255,200,180,0.2);border-radius:3px;outline:none}
+.ov-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#ffcc88;border-radius:50%;cursor:pointer}
+.ov-slider::-moz-range-thumb{width:14px;height:14px;background:#ffcc88;border-radius:50%;cursor:pointer;border:none}
+.ov-mute-btn{background:none;border:1px solid rgba(255,200,180,0.3);border-radius:4px;padding:4px 8px;font-size:14px;cursor:pointer}
+.ov-mute-btn:hover{background:rgba(255,200,180,0.1)}
+.ov-btn-small{font-size:11px;padding:6px 0;width:140px}
 /* DOM HUD */
 #dom-hud{position:absolute;top:0;left:0;width:100%;height:auto;display:none;z-index:4;pointer-events:none;padding:4px 8px;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
 #dom-hud.visible{display:flex;justify-content:space-between;align-items:flex-start}
@@ -130,7 +138,18 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
     <div id="scr-paused" class="ov-panel ov-hidden">
       <div class="ov-pause-title">PAUSED</div>
       <button class="ov-btn" id="btn-resume">RESUME</button>
+      <div class="ov-volume-section">
+        <span class="ov-volume-label">MUSIC</span>
+        <input type="range" id="vol-slider" min="0" max="100" value="50" class="ov-slider">
+        <button class="ov-mute-btn" id="btn-mute">🔊</button>
+      </div>
+      <button class="ov-btn ov-btn-small" id="btn-pause-howto">HOW TO PLAY</button>
       <div class="ov-pause-hint" id="pause-hint"></div>
+    </div>
+    <div id="scr-pause-howto" class="ov-panel ov-hidden">
+      <div class="ov-heading">HOW TO PLAY</div>
+      <div class="ov-text" id="pause-howto-text"></div>
+      <button class="ov-back" id="btn-pause-back">BACK TO PAUSE</button>
     </div>
     <div id="scr-gameover" class="ov-panel ov-hidden">
       <div class="ov-go-title">GAME OVER</div>
@@ -253,6 +272,253 @@ var SPIDER_DROP_TELEGRAPH=0.2;
 var GOO_GRAVITY=180;
 var MAX_GOO=3;
 var STOMP_SPIDER_SCORE=8;
+
+// === AUDIO SYSTEM (SNES-style procedural SFX) ===
+var audioCtx=null;
+var audioInitialized=false;
+var sfxVolume=0.4;
+var musicVolume=0.5;
+var audioMuted=false;
+var bgMusic=null;
+var level1Music=null;
+var level2Music=null;
+var level3Music=null;
+var currentMusicLevel=0;
+
+function initAudio(){
+  if(audioInitialized) return;
+  try{
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    audioInitialized=true;
+    // Load level music
+    level1Music=new Audio("audio/level1.wav");
+    level1Music.loop=true;
+    level1Music.volume=musicVolume;
+    level2Music=new Audio("audio/level2.wav");
+    level2Music.loop=true;
+    level2Music.volume=musicVolume;
+    level3Music=new Audio("audio/level3.wav");
+    level3Music.loop=true;
+    level3Music.volume=musicVolume;
+  }catch(e){console.log("Audio not supported");}
+}
+
+function playLevelMusic(lvl){
+  if(audioMuted) return;
+  stopLevelMusic();
+  if(lvl===1&&level1Music){
+    level1Music.currentTime=0;
+    level1Music.play().catch(function(){});
+    currentMusicLevel=1;
+  } else if(lvl===2&&level2Music){
+    level2Music.currentTime=0;
+    level2Music.play().catch(function(){});
+    currentMusicLevel=2;
+  } else if(lvl===3&&level3Music){
+    level3Music.currentTime=0;
+    level3Music.play().catch(function(){});
+    currentMusicLevel=3;
+  }
+}
+
+function stopLevelMusic(){
+  if(level1Music){level1Music.pause();level1Music.currentTime=0;}
+  if(level2Music){level2Music.pause();level2Music.currentTime=0;}
+  if(level3Music){level3Music.pause();level3Music.currentTime=0;}
+  currentMusicLevel=0;
+}
+
+// SNES-style sound: richer than 8-bit, uses multiple oscillators and filters
+function playSfx(type){
+  if(!audioCtx||audioMuted) return;
+  var now=audioCtx.currentTime;
+  var osc,osc2,gain,filter;
+
+  if(type==="jump"){
+    // Rising tone with harmonics
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="triangle";
+    osc.frequency.setValueAtTime(180,now);
+    osc.frequency.exponentialRampToValueAtTime(420,now+0.08);
+    osc.frequency.exponentialRampToValueAtTime(380,now+0.12);
+    osc2.frequency.setValueAtTime(360,now);
+    osc2.frequency.exponentialRampToValueAtTime(840,now+0.08);
+    gain.gain.setValueAtTime(sfxVolume*0.35,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.15);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.15);osc2.stop(now+0.15);
+  }
+  else if(type==="land"){
+    // Soft thud with low freq
+    osc=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="triangle";
+    osc.frequency.setValueAtTime(120,now);
+    osc.frequency.exponentialRampToValueAtTime(50,now+0.08);
+    filter.type="lowpass";filter.frequency.value=200;
+    gain.gain.setValueAtTime(sfxVolume*0.3,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.1);
+    osc.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc.stop(now+0.1);
+  }
+  else if(type==="dash"){
+    // Whoosh with noise-like quality
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="sawtooth";osc2.type="square";
+    osc.frequency.setValueAtTime(300,now);
+    osc.frequency.exponentialRampToValueAtTime(150,now+0.2);
+    osc2.frequency.setValueAtTime(450,now);
+    osc2.frequency.exponentialRampToValueAtTime(100,now+0.25);
+    filter.type="bandpass";filter.frequency.value=400;filter.Q.value=2;
+    gain.gain.setValueAtTime(sfxVolume*0.25,now);
+    gain.gain.setValueAtTime(sfxVolume*0.3,now+0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.25);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.25);osc2.stop(now+0.25);
+  }
+  else if(type==="shoot"){
+    // Laser pew
+    osc=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";
+    osc.frequency.setValueAtTime(880,now);
+    osc.frequency.exponentialRampToValueAtTime(220,now+0.1);
+    gain.gain.setValueAtTime(sfxVolume*0.2,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.12);
+    osc.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc.stop(now+0.12);
+  }
+  else if(type==="enemyHit"){
+    // Satisfying crunch/explosion
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    filter=audioCtx.createBiquadFilter();
+    osc.type="square";osc2.type="sawtooth";
+    osc.frequency.setValueAtTime(200,now);
+    osc.frequency.exponentialRampToValueAtTime(60,now+0.15);
+    osc2.frequency.setValueAtTime(300,now);
+    osc2.frequency.exponentialRampToValueAtTime(40,now+0.2);
+    filter.type="lowpass";filter.frequency.setValueAtTime(800,now);
+    filter.frequency.exponentialRampToValueAtTime(100,now+0.2);
+    gain.gain.setValueAtTime(sfxVolume*0.4,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.22);
+    osc.connect(filter);osc2.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.22);osc2.stop(now+0.22);
+  }
+  else if(type==="playerHit"){
+    // Harsh warning tone
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="square";
+    osc.frequency.setValueAtTime(200,now);
+    osc.frequency.setValueAtTime(150,now+0.08);
+    osc.frequency.setValueAtTime(100,now+0.16);
+    osc2.frequency.setValueAtTime(205,now);
+    osc2.frequency.setValueAtTime(155,now+0.08);
+    gain.gain.setValueAtTime(sfxVolume*0.35,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.25);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.25);osc2.stop(now+0.25);
+  }
+  else if(type==="pickupHeart"){
+    // Warm healing chime
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="sine";osc2.type="triangle";
+    osc.frequency.setValueAtTime(523,now);osc.frequency.setValueAtTime(659,now+0.08);osc.frequency.setValueAtTime(784,now+0.16);
+    osc2.frequency.setValueAtTime(262,now);osc2.frequency.setValueAtTime(330,now+0.08);
+    gain.gain.setValueAtTime(sfxVolume*0.3,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.3);osc2.stop(now+0.3);
+  }
+  else if(type==="pickupPower"){
+    // Energizing power-up
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="sawtooth";
+    osc.frequency.setValueAtTime(220,now);
+    osc.frequency.exponentialRampToValueAtTime(880,now+0.15);
+    osc2.frequency.setValueAtTime(440,now);
+    osc2.frequency.exponentialRampToValueAtTime(1760,now+0.15);
+    gain.gain.setValueAtTime(sfxVolume*0.25,now);
+    gain.gain.setValueAtTime(sfxVolume*0.35,now+0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.25);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.25);osc2.stop(now+0.25);
+  }
+  else if(type==="pickupInvinc"){
+    // Triumphant fanfare arpeggio
+    osc=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";
+    osc.frequency.setValueAtTime(392,now);
+    osc.frequency.setValueAtTime(523,now+0.07);
+    osc.frequency.setValueAtTime(659,now+0.14);
+    osc.frequency.setValueAtTime(784,now+0.21);
+    osc.frequency.setValueAtTime(1047,now+0.28);
+    gain.gain.setValueAtTime(sfxVolume*0.3,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.45);
+    osc.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc.stop(now+0.45);
+  }
+  else if(type==="levelUp"){
+    // Epic level transition fanfare
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="triangle";
+    osc.frequency.setValueAtTime(262,now);
+    osc.frequency.setValueAtTime(330,now+0.15);
+    osc.frequency.setValueAtTime(392,now+0.3);
+    osc.frequency.setValueAtTime(523,now+0.45);
+    osc2.frequency.setValueAtTime(523,now);
+    osc2.frequency.setValueAtTime(659,now+0.15);
+    osc2.frequency.setValueAtTime(784,now+0.3);
+    osc2.frequency.setValueAtTime(1047,now+0.45);
+    gain.gain.setValueAtTime(sfxVolume*0.35,now);
+    gain.gain.setValueAtTime(sfxVolume*0.4,now+0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.7);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.7);osc2.stop(now+0.7);
+  }
+  else if(type==="gameOver"){
+    // Sad descending tones
+    osc=audioCtx.createOscillator();osc2=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="square";osc2.type="triangle";
+    osc.frequency.setValueAtTime(440,now);
+    osc.frequency.setValueAtTime(392,now+0.2);
+    osc.frequency.setValueAtTime(330,now+0.4);
+    osc.frequency.setValueAtTime(262,now+0.6);
+    osc2.frequency.setValueAtTime(220,now);
+    osc2.frequency.setValueAtTime(196,now+0.2);
+    osc2.frequency.setValueAtTime(165,now+0.4);
+    osc2.frequency.setValueAtTime(131,now+0.6);
+    gain.gain.setValueAtTime(sfxVolume*0.35,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.9);
+    osc.connect(gain);osc2.connect(gain);gain.connect(audioCtx.destination);
+    osc.start(now);osc2.start(now);osc.stop(now+0.9);osc2.stop(now+0.9);
+  }
+}
+
+// Music functions (for custom music files)
+function loadMusic(url){
+  bgMusic=new Audio(url);
+  bgMusic.loop=true;
+  bgMusic.volume=musicVolume;
+}
+function playMusic(){if(bgMusic&&!audioMuted){bgMusic.play().catch(function(){});}}
+function pauseMusic(){if(bgMusic){bgMusic.pause();}}
+function stopMusic(){if(bgMusic){bgMusic.pause();bgMusic.currentTime=0;}}
+function setMusicVolume(v){musicVolume=v;if(bgMusic)bgMusic.volume=v;}
+function toggleMute(){
+  audioMuted=!audioMuted;
+  if(bgMusic){if(audioMuted)bgMusic.pause();else bgMusic.play().catch(function(){});}
+}
 
 // Pastel dusk palette (Level 1)
 // SNES-style robot colors (more vivid metallic blue)
@@ -391,6 +657,7 @@ var isMobile="ontouchstart"in window||navigator.maxTouchPoints>0;
 var scrTitle=document.getElementById("scr-title");
 var scrHowto=document.getElementById("scr-howto");
 var scrPaused=document.getElementById("scr-paused");
+var scrPauseHowto=document.getElementById("scr-pause-howto");
 var scrGameover=document.getElementById("scr-gameover");
 var titleBest=document.getElementById("title-best");
 var howtoText=document.getElementById("howto-text");
@@ -461,9 +728,11 @@ pauseHint.textContent=isMobile?"Tap RESUME":"ENTER = RESUME";
 function showScreen(name){
   scrTitle.classList.add("ov-hidden");scrHowto.classList.add("ov-hidden");
   scrPaused.classList.add("ov-hidden");scrGameover.classList.add("ov-hidden");
+  scrPauseHowto.classList.add("ov-hidden");
   if(name==="title"){scrTitle.classList.remove("ov-hidden");overlay.classList.add("active");domHud.classList.remove("visible");}
   else if(name==="howto"){scrHowto.classList.remove("ov-hidden");overlay.classList.add("active");}
   else if(name==="paused"){scrPaused.classList.remove("ov-hidden");overlay.classList.add("active");}
+  else if(name==="pause-howto"){scrPauseHowto.classList.remove("ov-hidden");overlay.classList.add("active");}
   else if(name==="gameover"){scrGameover.classList.remove("ov-hidden");overlay.classList.add("active");}
   else{overlay.classList.remove("active");domHud.classList.add("visible");}
 }
@@ -662,13 +931,15 @@ function generateWorld(upToX){
       var dh=10+Math.floor(Math.random()*12);
       terrainDunes.push({x:segStart+40+Math.random()*30,w:dw,h:dh});
     }
-    // Platform spawn chance is higher in Level 2
-    var platChance=level===2?0.4:0.25;
+    // Platform spawn chance is higher in Level 2, even higher in Level 3
+    var platChance=level===3?0.5:level===2?0.4:0.25;
     if(Math.random()<platChance){
       var itemX=segStart+20+Math.random()*40;
       var localGround=groundYAt(itemX);
-      var itemY=localGround-MAX_JUMP_HEIGHT-12-Math.random()*10;
-      if(itemY<20) itemY=20;
+      // Level 3: platforms go higher (3-4 tiers)
+      var extraHeight=level===3?20+Math.random()*15:0;
+      var itemY=localGround-MAX_JUMP_HEIGHT-12-Math.random()*10-extraHeight;
+      if(itemY<18) itemY=18;
       var itemType="power";
       if(Math.random()<0.2&&(itemX-lastHeartX)>HEART_MIN_DIST) itemType="heart";
       var highW=26+Math.floor(Math.random()*10);
@@ -676,14 +947,61 @@ function generateWorld(upToX){
       var highX=itemX-highW/2;
       var needStep=localGround-highY>MAX_JUMP_HEIGHT;
 
-      // Varied platform layout patterns
-      var layoutPattern=Math.floor(Math.random()*5);
+      // Varied platform layout patterns - Level 3 gets more complex patterns
+      var layoutPattern=Math.floor(Math.random()*(level===3?8:5));
       if(needStep){
         var lowY=localGround-MAX_JUMP_HEIGHT+4;
         var lowW=22+Math.floor(Math.random()*8);
         var offset=18+Math.floor(Math.random()*12);
 
-        if(layoutPattern===0){
+        if(level===3){
+          // Level 3: 3-4 tier platform challenges
+          var tier1Y=localGround-MAX_JUMP_HEIGHT+6;
+          var tier2Y=localGround-MAX_JUMP_HEIGHT*1.5;
+          var tier3Y=localGround-MAX_JUMP_HEIGHT*2+10;
+          var tier1W=20+Math.floor(Math.random()*8);
+          var tier2W=18+Math.floor(Math.random()*6);
+          var tier3W=16+Math.floor(Math.random()*6);
+
+          if(layoutPattern<3){
+            // 3-tier zigzag left
+            var t1X=highX+highW+offset*0.3;
+            var t2X=highX-offset*0.5;
+            var t3X=highX+offset*0.2;
+            if(!platformOverlaps(t1X,tier1W,tier1Y)) platforms.push({x:t1X,y:tier1Y,w:tier1W});
+            if(!platformOverlaps(t2X,tier2W,tier2Y)) platforms.push({x:t2X,y:tier2Y,w:tier2W});
+            if(!platformOverlaps(t3X,tier3W,tier3Y)) platforms.push({x:t3X,y:tier3Y,w:tier3W});
+          } else if(layoutPattern<5){
+            // 3-tier zigzag right
+            var t1X=highX-offset*0.5;
+            var t2X=highX+highW+offset*0.3;
+            var t3X=highX;
+            if(!platformOverlaps(t1X,tier1W,tier1Y)) platforms.push({x:t1X,y:tier1Y,w:tier1W});
+            if(!platformOverlaps(t2X,tier2W,tier2Y)) platforms.push({x:t2X,y:tier2Y,w:tier2W});
+            if(!platformOverlaps(t3X,tier3W,tier3Y)) platforms.push({x:t3X,y:tier3Y,w:tier3W});
+          } else if(layoutPattern<7){
+            // 4-tier staircase
+            var tier4Y=localGround-MAX_JUMP_HEIGHT*2.3;
+            var tier4W=14+Math.floor(Math.random()*5);
+            var t1X=highX+highW+offset*0.5;
+            var t2X=highX+offset*0.3;
+            var t3X=highX-offset*0.3;
+            var t4X=highX+offset*0.1;
+            if(!platformOverlaps(t1X,tier1W,tier1Y)) platforms.push({x:t1X,y:tier1Y,w:tier1W});
+            if(!platformOverlaps(t2X,tier2W,tier2Y)) platforms.push({x:t2X,y:tier2Y,w:tier2W});
+            if(!platformOverlaps(t3X,tier3W,tier3Y)) platforms.push({x:t3X,y:tier3Y,w:tier3W});
+            if(tier4Y>=16&&!platformOverlaps(t4X,tier4W,tier4Y)) platforms.push({x:t4X,y:tier4Y,w:tier4W});
+          } else {
+            // 4-tier tower
+            var tier4Y=localGround-MAX_JUMP_HEIGHT*2.4;
+            var tier4W=14+Math.floor(Math.random()*5);
+            var centerX=highX+highW/2;
+            if(!platformOverlaps(centerX-tier1W/2+10,tier1W,tier1Y)) platforms.push({x:centerX-tier1W/2+10,y:tier1Y,w:tier1W});
+            if(!platformOverlaps(centerX-tier2W/2-8,tier2W,tier2Y)) platforms.push({x:centerX-tier2W/2-8,y:tier2Y,w:tier2W});
+            if(!platformOverlaps(centerX-tier3W/2+6,tier3W,tier3Y)) platforms.push({x:centerX-tier3W/2+6,y:tier3Y,w:tier3W});
+            if(tier4Y>=16&&!platformOverlaps(centerX-tier4W/2,tier4W,tier4Y)) platforms.push({x:centerX-tier4W/2,y:tier4Y,w:tier4W});
+          }
+        } else if(layoutPattern===0){
           // Pattern 0: Step on left
           var lowX=highX-offset;
           if(!platformOverlaps(lowX,lowW,lowY)) platforms.push({x:lowX,y:lowY,w:lowW});
@@ -868,7 +1186,7 @@ function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
 
 // === INPUT ===
 var keys={};
-function startGame(){resetGame();state="playing";showScreen("playing");}
+function startGame(){initAudio();resetGame();state="playing";showScreen("playing");playLevelMusic(1);}
 
 document.addEventListener("keydown",function(e){
   if(keys[e.code]){e.preventDefault();return;}
@@ -902,6 +1220,38 @@ document.getElementById("btn-notify").addEventListener("click",function(){});
 document.getElementById("btn-back").addEventListener("click",function(){showScreen("title");});
 document.getElementById("btn-resume").addEventListener("click",function(){state="playing";showScreen("playing");});
 document.getElementById("btn-retry").addEventListener("click",startGame);
+// Volume and pause menu controls
+var volSlider=document.getElementById("vol-slider");
+var btnMute=document.getElementById("btn-mute");
+var pauseHowtoText=document.getElementById("pause-howto-text");
+volSlider.addEventListener("input",function(){
+  var v=parseInt(volSlider.value)/100;
+  musicVolume=v;
+  if(level1Music)level1Music.volume=v;
+  if(level2Music)level2Music.volume=v;
+  if(level3Music)level3Music.volume=v;
+  if(v===0){btnMute.textContent="🔇";}
+  else{btnMute.textContent="🔊";}
+});
+btnMute.addEventListener("click",function(){
+  audioMuted=!audioMuted;
+  if(audioMuted){
+    btnMute.textContent="🔇";
+    if(level1Music)level1Music.pause();
+    if(level2Music)level2Music.pause();
+    if(level3Music)level3Music.pause();
+  }else{
+    btnMute.textContent="🔊";
+    playLevelMusic(level);
+  }
+});
+document.getElementById("btn-pause-howto").addEventListener("click",function(){
+  pauseHowtoText.innerHTML=howtoText.innerHTML;
+  showScreen("pause-howto");
+});
+document.getElementById("btn-pause-back").addEventListener("click",function(){
+  showScreen("paused");
+});
 
 if(isMobile){
   mobileButtons.forEach(function(mb){
@@ -944,6 +1294,7 @@ function doStomp(entityX,entityY,entityTop,scoreBonus){
   player.onGround=false;
   stompCooldown=STOMP_COOLDOWN;
   stompFlash=0.15;
+  playSfx("enemyHit");
   spawnParticles(entityX,entityY,"#ffaa44",12);
   spawnParticles(entityX,entityY,"#ffffff",4);
 }
@@ -972,6 +1323,8 @@ function update(dt){
     level=2;
     levelTransitionTimer=LEVEL_TRANSITION_TIME;
     spawnPauseTimer=SPAWN_PAUSE_TIME;
+    playLevelMusic(2);
+    playSfx("levelUp");
     hudLevel.textContent="LVL 2";
     hudLevel.style.color="#cc88ff";
   }
@@ -994,6 +1347,8 @@ function update(dt){
     if(pitFallTimer<=0){
       level=3;
       levelTransitionTimer=LEVEL_TRANSITION_TIME;
+      playLevelMusic(3);
+      playSfx("levelUp");
       // Safe landing: clamp to ground, no velocity
       player.y=GROUND_Y;player.vy=0;player.onGround=true;
       player.invuln=Math.max(player.invuln,0.5); // Extra invuln frames on landing
@@ -1020,6 +1375,7 @@ function update(dt){
     player.dashTimer=DASH_DURATION;
     player.dashCharges--;
     player.dashDir=player.facing;
+    playSfx("dash");
     spawnParticles(player.x,player.y-8,C_DASH_READY,6);
     buildDashPips(player.dashCharges,MAX_DASH_CHARGES);
   }
@@ -1059,7 +1415,7 @@ function update(dt){
   if(player.y>=GROUND_Y){player.y=GROUND_Y;player.vy=0;onSomething=true;}
 
   if(onSomething){
-    if(!player.onGround){player.coyoteTimer=COYOTE_MS;spawnDust(player.x,player.y,3);}
+    if(!player.onGround){player.coyoteTimer=COYOTE_MS;spawnDust(player.x,player.y,3);playSfx("land");}
     player.onGround=true;
   } else {
     if(player.onGround&&player.vy>=0) player.coyoteTimer=COYOTE_MS;
@@ -1089,6 +1445,7 @@ function update(dt){
   if(player.jumpBufferTimer>0&&canJump){
     player.vy=JUMP_VEL;player.onGround=false;
     player.coyoteTimer=0;player.jumpBufferTimer=0;
+    playSfx("jump");
     spawnDust(player.x,player.y,5,"#c8aa88");
   }
   if(!held.jump&&player.vy<JUMP_VEL*0.4) player.vy=JUMP_VEL*0.4;
@@ -1246,7 +1603,7 @@ function update(dt){
         spawnParticles(en.x,en.y,"#ffffff",4);
         enemies.splice(i,1);continue;
       } else if(!isInvuln){
-        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;playSfx("playerHit");
         spawnParticles(en.x,en.y,C_SHIP_GLOW,10);enemies.splice(i,1);
         buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
         if(player.lives<=0){gameOver();return;}
@@ -1263,7 +1620,7 @@ function update(dt){
       spawnParticles(proj.x,proj.y,C_INVINC,4);projectiles.splice(pi2,1);continue;
     }
     if(!isInvuln&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,proj.x-3,proj.y-3,6,6)){
-      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;
+      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;playSfx("playerHit");
       spawnParticles(proj.x,proj.y,C_PROJ,6);projectiles.splice(pi2,1);
       buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
       if(player.lives<=0){gameOver();return;}
@@ -1301,7 +1658,7 @@ function update(dt){
           spawnParticles(wm.x,GROUND_Y-4,"#ffffff",5);
           sandworms.splice(wi,1);continue;
         } else if(!isInvuln){
-          player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+          player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;playSfx("playerHit");
           spawnParticles(wm.x,GROUND_Y-4,"#c8a878",8);
           buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
           if(player.lives<=0){gameOver();return;}
@@ -1345,7 +1702,7 @@ function update(dt){
         spawnParticles(fl.x,fl.y,"#ffffff",4);
         fliers.splice(fi,1);continue;
       } else if(!isInvuln){
-        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;playSfx("playerHit");
         spawnParticles(fl.x,fl.y,C_FLIER_BODY,8);fliers.splice(fi,1);
         buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
         if(player.lives<=0){gameOver();return;}
@@ -1364,7 +1721,7 @@ function update(dt){
       spawnParticles(dr.x,dr.y,C_INVINC,4);drops.splice(di,1);continue;
     }
     if(!isInvuln&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,dr.x-4,dr.y-4,8,8)){
-      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;
+      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;playSfx("playerHit");
       spawnParticles(dr.x,dr.y,C_DROP,6);drops.splice(di,1);
       buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
       if(player.lives<=0){gameOver();return;}
@@ -1409,7 +1766,7 @@ function update(dt){
         spawnParticles(drd.x,drd.y-6,"#ffffff",4);
         droids.splice(dri,1);continue;
       } else if(!isInvuln){
-        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;playSfx("playerHit");
         spawnParticles(drd.x,drd.y-6,C_DROID_BODY,10);droids.splice(dri,1);
         buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
         if(player.lives<=0){gameOver();return;}
@@ -1426,7 +1783,7 @@ function update(dt){
       spawnParticles(las.x,las.y,C_INVINC,4);lasers.splice(li,1);continue;
     }
     if(!isInvuln&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,las.x-6,las.y-2,12,4)){
-      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;
+      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;playSfx("playerHit");
       spawnParticles(las.x,las.y,C_LASER,6);lasers.splice(li,1);
       buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
       if(player.lives<=0){gameOver();return;}
@@ -1465,7 +1822,7 @@ function update(dt){
         spawnParticles(bw.x,GROUND_Y-6,C_INVINC,10);
         bigworms.splice(bwi,1);continue;
       } else if(!isInvuln){
-        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;playSfx("playerHit");
         spawnParticles(bw.x,GROUND_Y-6,C_BIGWORM,8);
         buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
         if(player.lives<=0){gameOver();return;}
@@ -1482,7 +1839,7 @@ function update(dt){
       spawnParticles(dg.x,dg.y,C_INVINC,4);daggers.splice(dgi,1);continue;
     }
     if(!isInvuln&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,dg.x-4,dg.y-4,8,8)){
-      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;
+      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;playSfx("playerHit");
       spawnParticles(dg.x,dg.y,C_DAGGER,6);daggers.splice(dgi,1);
       buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
       if(player.lives<=0){gameOver();return;}
@@ -1517,7 +1874,7 @@ function update(dt){
         spawnParticles(sp.x,sp.y,C_INVINC,8);
         spiders.splice(spi,1);continue;
       } else if(!isInvuln){
-        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;
+        player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.3;playSfx("playerHit");
         spawnParticles(sp.x,sp.y,C_SPIDER,8);spiders.splice(spi,1);
         buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
         if(player.lives<=0){gameOver();return;}
@@ -1535,7 +1892,7 @@ function update(dt){
       spawnParticles(goo.x,goo.y,C_INVINC,4);gooDrops.splice(gi,1);continue;
     }
     if(!isInvuln&&rectsOverlap(pr.x,pr.y,pr.w,pr.h,goo.x-5,goo.y-5,10,10)){
-      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;
+      player.lives--;player.invuln=INVULN_TIME;shakeTimer=0.2;playSfx("playerHit");
       spawnParticles(goo.x,goo.y,C_GOO,6);gooDrops.splice(gi,1);
       buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
       if(player.lives<=0){gameOver();return;}
@@ -1550,6 +1907,7 @@ function update(dt){
     if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,hp.x-5,hpY-5,10,10)){
       player.lives=Math.min(LIVES_CAP,player.lives+1);
       buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+      playSfx("pickupHeart");
       spawnParticles(hp.x,hpY,C_HEART_PU,10);
       heartPickups.splice(hi,1);
     }
@@ -1563,6 +1921,7 @@ function update(dt){
       player.powerTimer=POWER_DURATION;
       player.dashCharges=Math.min(MAX_DASH_CHARGES,player.dashCharges+1);
       buildDashPips(player.dashCharges,MAX_DASH_CHARGES);
+      playSfx("pickupPower");
       spawnParticles(pw.x,pwY,C_POWER,12);
       powerCells.splice(pc,1);
     }
@@ -1575,6 +1934,7 @@ function update(dt){
     var inpY=inp.y+Math.sin(inp.bob)*3;
     if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,inp.x-6,inpY-6,12,12)){
       player.invincTimer=INVINC_DURATION;
+      playSfx("pickupInvinc");
       spawnParticles(inp.x,inpY,C_INVINC,16);
       spawnParticles(inp.x,inpY,"#ffffff",8);
       invincPickups.splice(iv,1);
@@ -1614,6 +1974,8 @@ function update(dt){
 
 function gameOver(){
   state="gameover";
+  stopLevelMusic();
+  playSfx("gameOver");
   if(score>bestScore){bestScore=score;localStorage.setItem("freqfx_best",bestScore.toString());}
   goScore.textContent="SCORE: "+score;
   if(score>=bestScore&&score>0){goBest.className="ov-go-best";goBest.textContent="NEW BEST!";}
