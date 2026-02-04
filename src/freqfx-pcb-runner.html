@@ -72,6 +72,15 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 .ov-mute-btn{background:none;border:1px solid rgba(255,200,180,0.3);border-radius:4px;padding:4px 8px;font-size:14px;cursor:pointer}
 .ov-mute-btn:hover{background:rgba(255,200,180,0.1)}
 .ov-btn-small{font-size:11px;padding:6px 0;width:140px}
+/* Leaderboard styles */
+.ov-lb-prompt{font:11px monospace;color:#aa9988;letter-spacing:1px;margin:8px 0 4px}
+.ov-name-input{width:140px;padding:8px;font:bold 14px monospace;text-align:center;text-transform:uppercase;background:rgba(255,200,180,0.1);border:1px solid rgba(255,200,180,0.3);border-radius:4px;color:#ffcc88;outline:none;margin-bottom:6px}
+.ov-name-input::placeholder{color:#665544}
+.ov-name-input:focus{border-color:rgba(255,200,180,0.6);background:rgba(255,200,180,0.15)}
+.ov-lb-status{font:11px monospace;color:#88cc88;letter-spacing:1px;min-height:16px;margin:4px 0}
+.ov-lb-status.error{color:#ff8888}
+#leaderboard-submit{display:flex;flex-direction:column;align-items:center;margin:6px 0}
+#leaderboard-submit.ov-hidden{display:none}
 /* DOM HUD - SNES pixel font style (2x size) */
 #dom-hud{position:absolute;top:0;left:0;width:100%;height:auto;display:none;z-index:4;pointer-events:none;padding:8px 12px;font-family:'Press Start 2P',monospace}
 #dom-hud.visible{display:flex;justify-content:space-between;align-items:flex-start}
@@ -167,7 +176,14 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
       <div class="ov-go-title">GAME OVER</div>
       <div class="ov-go-score" id="go-score">SCORE: 0</div>
       <div id="go-best"></div>
+      <div id="leaderboard-submit" class="ov-hidden">
+        <div class="ov-lb-prompt">Enter name for leaderboard:</div>
+        <input type="text" id="lb-name-input" maxlength="12" placeholder="YOUR NAME" class="ov-name-input">
+        <button class="ov-btn ov-btn-small" id="btn-submit-score">SUBMIT SCORE</button>
+      </div>
+      <div id="leaderboard-status" class="ov-lb-status"></div>
       <button class="ov-btn" id="btn-retry">RETRY</button>
+      <button class="ov-btn ov-btn-alt ov-btn-small" id="btn-leaderboard">VIEW LEADERBOARD</button>
     </div>
   </div>
 </div>
@@ -316,6 +332,12 @@ var playerLasers=[];
 var PLAYER_LASER_SPEED=250;
 var PLAYER_LASER_COOLDOWN=0.35;
 var playerLaserCooldown=0;
+
+// === LEADERBOARD ===
+var LEADERBOARD_API="https://www.dezertaudio.com/_functions";
+var LEADERBOARD_PAGE="https://www.dezertaudio.com/dezert-runner";
+var leaderboardCache=null;
+var scoreSubmitted=false;
 
 // === AUDIO SYSTEM (SNES-style procedural SFX) ===
 var audioCtx=null;
@@ -1378,6 +1400,7 @@ function resetGame(){
   bossProjectiles=[];
   playerLasers=[];
   playerLaserCooldown=0;
+  scoreSubmitted=false;
   if(bossHud) bossHud.classList.remove("visible");
   initWorld();
   generateWorld(cam.x+W+400);
@@ -1917,6 +1940,19 @@ document.getElementById("btn-notify").addEventListener("click",function(){});
 document.getElementById("btn-back").addEventListener("click",function(){showScreen("title");});
 document.getElementById("btn-resume").addEventListener("click",function(){state="playing";showScreen("playing");});
 document.getElementById("btn-retry").addEventListener("click",startGame);
+document.getElementById("btn-submit-score").addEventListener("click",function(){
+  var nameInput=document.getElementById("lb-name-input");
+  submitScore(nameInput.value,score);
+});
+document.getElementById("btn-leaderboard").addEventListener("click",function(){
+  window.open(LEADERBOARD_PAGE,"_blank");
+});
+document.getElementById("lb-name-input").addEventListener("keypress",function(e){
+  if(e.key==="Enter"){
+    var nameInput=document.getElementById("lb-name-input");
+    submitScore(nameInput.value,score);
+  }
+});
 // Volume and pause menu controls
 var volSlider=document.getElementById("vol-slider");
 var btnMute=document.getElementById("btn-mute");
@@ -2717,13 +2753,84 @@ function gameOver(){
   state="gameover";
   stopLevelMusic();
   playSfx("gameOver");
+  scoreSubmitted=false;
   if(score>bestScore){bestScore=score;localStorage.setItem("freqfx_best",bestScore.toString());}
   goScore.textContent="SCORE: "+score;
   if(score>=bestScore&&score>0){goBest.className="ov-go-best";goBest.textContent="NEW BEST!";}
   else{goBest.className="ov-go-best-dim";goBest.textContent="BEST: "+bestScore;}
   titleBest.textContent="BEST: "+bestScore;
+  // Reset leaderboard UI
+  var lbSubmit=document.getElementById("leaderboard-submit");
+  var lbStatus=document.getElementById("leaderboard-status");
+  var lbInput=document.getElementById("lb-name-input");
+  lbSubmit.classList.add("ov-hidden");
+  lbStatus.textContent="";
+  lbStatus.className="ov-lb-status";
+  lbInput.value=localStorage.getItem("freqfx_name")||"";
+  // Check if score qualifies for leaderboard
+  checkLeaderboardQualify(score);
   showScreen("gameover");
   try{window.parent.postMessage({type:"FREQFX_GAME_OVER",score:score,best:bestScore},"*");}catch(e){}
+}
+
+// === LEADERBOARD FUNCTIONS ===
+function checkLeaderboardQualify(playerScore){
+  if(playerScore<10) return; // Minimum score to qualify
+  var lbSubmit=document.getElementById("leaderboard-submit");
+  var lbStatus=document.getElementById("leaderboard-status");
+  lbStatus.textContent="Checking leaderboard...";
+  fetch(LEADERBOARD_API+"/leaderboard")
+    .then(function(r){return r.json();})
+    .then(function(data){
+      leaderboardCache=data.items||[];
+      var qualifies=leaderboardCache.length<50||playerScore>leaderboardCache[leaderboardCache.length-1].score;
+      if(qualifies){
+        lbSubmit.classList.remove("ov-hidden");
+        lbStatus.textContent="You made the top 50!";
+      } else {
+        lbStatus.textContent="";
+      }
+    })
+    .catch(function(){
+      // If fetch fails, still allow submission
+      lbSubmit.classList.remove("ov-hidden");
+      lbStatus.textContent="";
+    });
+}
+
+function submitScore(playerName,playerScore){
+  var lbStatus=document.getElementById("leaderboard-status");
+  var lbSubmit=document.getElementById("leaderboard-submit");
+  if(scoreSubmitted){lbStatus.textContent="Already submitted!";return;}
+  if(!playerName||playerName.trim().length===0){
+    lbStatus.textContent="Enter a name!";
+    lbStatus.className="ov-lb-status error";
+    return;
+  }
+  lbStatus.textContent="Submitting...";
+  lbStatus.className="ov-lb-status";
+  localStorage.setItem("freqfx_name",playerName.trim());
+  fetch(LEADERBOARD_API+"/submitScore",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({playerName:playerName.trim().toUpperCase(),score:playerScore,level:level})
+  })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success){
+        scoreSubmitted=true;
+        lbSubmit.classList.add("ov-hidden");
+        lbStatus.textContent="Score submitted!";
+        lbStatus.className="ov-lb-status";
+      } else {
+        lbStatus.textContent="Error submitting";
+        lbStatus.className="ov-lb-status error";
+      }
+    })
+    .catch(function(){
+      lbStatus.textContent="Connection error";
+      lbStatus.className="ov-lb-status error";
+    });
 }
 
 // === DRAW ===
