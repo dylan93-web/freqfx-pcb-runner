@@ -19,7 +19,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 @media (pointer: coarse) {
   .hud-heart{width:24px!important;height:20px!important}
   #hud-hearts{gap:4px!important}
-  #hud-dash{position:fixed!important;top:8px!important;right:12px!important;bottom:auto!important;left:auto!important;transform:none!important;gap:6px!important;flex-direction:row!important;align-items:center!important;width:auto!important}
+  #hud-dash{position:fixed!important;bottom:10px!important;top:auto!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;gap:6px!important;flex-direction:row!important;align-items:center!important;width:auto!important}
   #hud-dash-label{font-size:10px!important;letter-spacing:1px!important}
   .dash-pip{width:20px!important;height:10px!important;border-width:2px!important}
   #hud-dash-charges{gap:4px!important}
@@ -35,7 +35,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
   #dom-hud{padding:4px 8px!important}
 }
 /* Pause button for mobile */
-#mobile-pause{display:none;position:fixed;top:6px;left:50%;transform:translateX(-50%);width:40px;height:24px;z-index:10;touch-action:manipulation;border:1px solid rgba(255,200,180,0.3);border-radius:4px;background:rgba(0,0,0,0.5);color:#ffcc99;font:bold 10px monospace;opacity:0.7}
+#mobile-pause{display:none;position:fixed;top:28px;left:50%;transform:translateX(-50%);width:40px;height:24px;z-index:10;touch-action:manipulation;border:1px solid rgba(255,200,180,0.3);border-radius:4px;background:rgba(0,0,0,0.5);color:#ffcc99;font:bold 10px monospace;opacity:0.7}
 /* Joystick styles */
 #joystick-zone{display:none;position:fixed;left:10px;bottom:10px;width:130px;height:130px;z-index:10;touch-action:none}
 #joystick-base{position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,200,180,0.15);border:3px solid rgba(255,200,180,0.3)}
@@ -1921,7 +1921,7 @@ document.getElementById("btn-retry").addEventListener("click",startGame);
 var volSlider=document.getElementById("vol-slider");
 var btnMute=document.getElementById("btn-mute");
 var pauseHowtoText=document.getElementById("pause-howto-text");
-volSlider.addEventListener("input",function(){
+function updateMusicVolume(){
   var v=parseInt(volSlider.value)/100;
   musicVolume=v;
   if(level1Music)level1Music.volume=v;
@@ -1929,7 +1929,10 @@ volSlider.addEventListener("input",function(){
   if(level3Music)level3Music.volume=v;
   if(v===0){btnMute.textContent="🔇";}
   else{btnMute.textContent="🔊";}
-});
+}
+volSlider.addEventListener("input",updateMusicVolume);
+volSlider.addEventListener("change",updateMusicVolume);
+volSlider.addEventListener("touchend",updateMusicVolume);
 btnMute.addEventListener("click",function(){
   audioMuted=!audioMuted;
   if(audioMuted){
