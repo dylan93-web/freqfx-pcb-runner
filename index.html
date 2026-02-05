@@ -1246,9 +1246,9 @@ var torches=[];
 var stars=[];
 var score=0,distance=0,maxX=0;
 var bestScore=parseInt(localStorage.getItem("freqfx_best"))||0;
-// Scoring: distance (1:1) + enemy kills (10pts) + item pickups (5pts)
+// Scoring: distance (1:1) + enemy kills (5-10pts) + item pickups (2pts)
 var SCORE_ENEMY_KILL=10;
-var SCORE_ITEM_PICKUP=5;
+var SCORE_ITEM_PICKUP=2;
 // Score popups and combo system
 var scorePopups=[];
 var stompCombo=0; // Resets when player touches ground
