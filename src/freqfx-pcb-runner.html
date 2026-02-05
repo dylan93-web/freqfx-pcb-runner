@@ -1007,9 +1007,9 @@ function enterFullscreen(){
         screen.orientation.lock("landscape").catch(function(){});
       }
     }).catch(function(){
-      // Fullscreen blocked (iframe) - open custom domain in new tab
+      // Fullscreen blocked (iframe) - open in new tab for proper fullscreen
       if(isEmbedded){
-        window.open("https://game.dezertaudio.com/src/freqfx-pcb-runner.html","_blank");
+        window.open("https://dylan93-web.github.io/freqfx-pcb-runner/src/freqfx-pcb-runner.html","_blank");
       }
       fullscreenPrompt.classList.remove("visible");
     });
