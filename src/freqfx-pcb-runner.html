@@ -992,6 +992,13 @@ var fullscreenPrompt=document.getElementById("fullscreen-prompt");
 var isEmbedded=window.self!==window.top;
 
 function enterFullscreen(){
+  // On mobile in iframe, just open new tab immediately (iOS blocks async popups)
+  if(isMobile && isEmbedded){
+    window.open("https://dylan93-web.github.io/freqfx-pcb-runner/src/freqfx-pcb-runner.html","_blank");
+    fullscreenPrompt.classList.remove("visible");
+    return;
+  }
+
   var elem=document.documentElement;
   // Try fullscreen API (may fail in iframes)
   var fsPromise=null;
@@ -1007,17 +1014,10 @@ function enterFullscreen(){
         screen.orientation.lock("landscape").catch(function(){});
       }
     }).catch(function(){
-      // Fullscreen blocked (iframe) - open in new tab for proper fullscreen
-      if(isEmbedded){
-        window.open("https://dylan93-web.github.io/freqfx-pcb-runner/src/freqfx-pcb-runner.html","_blank");
-      }
+      // Fullscreen blocked (iframe on desktop)
       fullscreenPrompt.classList.remove("visible");
     });
   } else {
-    // Fullscreen API not available (iOS) - open in new tab if embedded
-    if(isEmbedded){
-      window.open("https://dylan93-web.github.io/freqfx-pcb-runner/src/freqfx-pcb-runner.html","_blank");
-    }
     fullscreenPrompt.classList.remove("visible");
   }
 }
