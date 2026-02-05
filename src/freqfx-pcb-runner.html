@@ -1508,6 +1508,7 @@ function resetGame(){
   buildDashPips(player.dashCharges,MAX_DASH_CHARGES);
   hudLevel.textContent="LVL 1";
   hudLevel.style.color="#88ccff";
+  hudDashLabel.textContent="DASH";
 }
 
 // === SPAWNING ===
@@ -1607,6 +1608,8 @@ function spawnBoss(){
   enemies=[];fliers=[];droids=[];sandworms=[];bigworms=[];spiders=[];
   projectiles=[];lasers=[];daggers=[];gooDrops=[];drops=[];
   spawnPauseTimer=999; // Pause indefinitely until boss defeated
+  // Change DASH label to SHOOT for boss fight
+  hudDashLabel.textContent="SHOOT";
 
   // === SPAWN BOSS ARENA PLATFORMS ===
   // Create two platforms on left and right for jumping onto worm
@@ -1994,6 +1997,8 @@ function bossDefeated(){
   score+=BOSS_DEFEAT_SCORE;
   // Hide boss HUD
   if(bossHud) bossHud.classList.remove("visible");
+  // Change SHOOT label back to DASH
+  hudDashLabel.textContent="DASH";
   // Resume enemy spawning
   spawnPauseTimer=2.0; // Brief pause before enemies return
   // Victory particles
