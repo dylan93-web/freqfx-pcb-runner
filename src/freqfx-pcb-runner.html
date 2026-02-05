@@ -144,8 +144,8 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 <div id="fullscreen-prompt">
   <div class="fs-title">FREQ-2</div>
   <div class="fs-subtitle">Dezert Runner</div>
-  <button id="btn-fullscreen">TAP TO PLAY</button>
-  <div class="fs-hint">Best in fullscreen</div>
+  <button id="btn-fullscreen">PLAY FULLSCREEN</button>
+  <div class="fs-hint">Opens in new tab for best experience</div>
 </div>
 <div id="rotate-prompt"><div class="icon">📱</div>Rotate your phone to<br>landscape mode to play</div>
 <div id="joystick-zone"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
@@ -989,15 +989,20 @@ var isMobile="ontouchstart"in window||navigator.maxTouchPoints>0;
 
 // Fullscreen handling for mobile
 var fullscreenPrompt=document.getElementById("fullscreen-prompt");
-var isFullscreen=false;
+var isEmbedded=window.self!==window.top;
 
 function enterFullscreen(){
+  // If embedded in iframe, open in new tab for proper fullscreen
+  if(isEmbedded){
+    window.open(window.location.href,"_blank");
+    return;
+  }
+  // Direct visit - use fullscreen API
   var elem=document.documentElement;
   if(elem.requestFullscreen){elem.requestFullscreen();}
   else if(elem.webkitRequestFullscreen){elem.webkitRequestFullscreen();}
   else if(elem.msRequestFullscreen){elem.msRequestFullscreen();}
   fullscreenPrompt.classList.remove("visible");
-  isFullscreen=true;
   // Lock to landscape if supported
   if(screen.orientation&&screen.orientation.lock){
     screen.orientation.lock("landscape").catch(function(){});
@@ -1006,25 +1011,20 @@ function enterFullscreen(){
 
 document.getElementById("btn-fullscreen").addEventListener("click",enterFullscreen);
 
-// Show fullscreen prompt on mobile (when embedded)
-if(isMobile&&window.self!==window.top){
-  fullscreenPrompt.classList.add("visible");
-} else if(isMobile){
-  // Direct visit on mobile - still offer fullscreen
+// Show fullscreen prompt on mobile
+if(isMobile){
   fullscreenPrompt.classList.add("visible");
 }
 
-// Handle fullscreen exit
+// Handle fullscreen exit (only for direct visits)
 document.addEventListener("fullscreenchange",function(){
   if(!document.fullscreenElement&&!document.webkitFullscreenElement){
-    isFullscreen=false;
-    if(isMobile) fullscreenPrompt.classList.add("visible");
+    if(isMobile&&!isEmbedded) fullscreenPrompt.classList.add("visible");
   }
 });
 document.addEventListener("webkitfullscreenchange",function(){
   if(!document.webkitFullscreenElement){
-    isFullscreen=false;
-    if(isMobile) fullscreenPrompt.classList.add("visible");
+    if(isMobile&&!isEmbedded) fullscreenPrompt.classList.add("visible");
   }
 });
 
@@ -2177,6 +2177,8 @@ function doStomp(entityX,entityY,entityTop,scoreBonus){
 // === UPDATE ===
 function update(dt){
   if(state!=="playing") return;
+  // Safety check - always trigger game over if lives depleted
+  if(player.lives<=0&&state==="playing"){gameOver();return;}
   gameTime+=dt;shimmerOffset+=dt;
 
   player.prevY=player.y;
