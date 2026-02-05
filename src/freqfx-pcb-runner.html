@@ -1541,25 +1541,34 @@ function spawnFlier(){
 
 function spawnDroid(){
   if(spawnPauseTimer>0) return;
+  var speedMult=level===3?getL3DifficultyMult():1;
   var dx=worldRight()+Math.random()*80;
   var gy=groundYAt(dx);
-  droids.push({x:dx,y:gy,w:10,h:12,vx:DROID_SPEED,patrolStart:dx,
-    fireTimer:1.5+Math.random()*DROID_FIRE_INTERVAL,telegraphing:false,telegraphTimer:0});
+  var fireInt=level===3?DROID_L3_FIRE_INTERVAL:DROID_FIRE_INTERVAL;
+  droids.push({x:dx,y:gy,w:10,h:12,vx:DROID_SPEED*speedMult,patrolStart:dx,
+    fireTimer:(1.5+Math.random()*fireInt)/speedMult,telegraphing:false,telegraphTimer:0});
 }
 
-// Level 3 enemies
+// Level 3 enemies - speed scales with distance
+function getL3DifficultyMult(){
+  var distPast1000=Math.max(0,score-LEVEL_3_THRESHOLD);
+  return 1+Math.floor(distPast1000/200)*0.1; // +10% every 200 dist
+}
+
 function spawnBigworm(){
   if(spawnPauseTimer>0) return;
+  var speedMult=getL3DifficultyMult();
   var startX=cam.x+W+60+Math.random()*80;
-  bigworms.push({x:startX,y:GROUND_Y,vx:-BIGWORM_SPEED,length:BIGWORM_LENGTH,
-    fireTimer:1+Math.random()*BIGWORM_FIRE_INTERVAL,telegraphing:false,telegraphTimer:0});
+  bigworms.push({x:startX,y:GROUND_Y,vx:-BIGWORM_SPEED*speedMult,length:BIGWORM_LENGTH,
+    fireTimer:(1+Math.random()*BIGWORM_FIRE_INTERVAL)/speedMult,telegraphing:false,telegraphTimer:0});
 }
 
 function spawnSpider(){
   if(spawnPauseTimer>0) return;
+  var speedMult=getL3DifficultyMult();
   var sx=worldRight()+Math.random()*60;
-  spiders.push({x:sx,y:20+Math.random()*15,w:10,h:8,vx:-SPIDER_SPEED*(0.7+Math.random()*0.4),
-    dropTimer:1.5+Math.random()*SPIDER_DROP_INTERVAL,telegraphing:false,telegraphTimer:0});
+  spiders.push({x:sx,y:20+Math.random()*15,w:10,h:8,vx:-SPIDER_SPEED*(0.7+Math.random()*0.4)*speedMult,
+    dropTimer:(1.5+Math.random()*SPIDER_DROP_INTERVAL)/speedMult,telegraphing:false,telegraphTimer:0});
 }
 
 function spawnDust(x,y,count,color){
@@ -2428,22 +2437,26 @@ function update(dt){
   }
 
   // Level 3 enemies (cave only: big worms, spiders, red droids - NO ships/fliers)
-  // HARDER: Faster spawn rates!
+  // PROGRESSIVE DIFFICULTY: +10% every 200 distance past 1000
   if(level===3){
+    var distPast1000=Math.max(0,score-LEVEL_3_THRESHOLD);
+    var difficultyMult=1+Math.floor(distPast1000/200)*0.1; // 1.0, 1.1, 1.2, etc.
+    var spawnMult=1/difficultyMult; // Faster spawns = shorter timers
+
     bigwormTimer-=dt;
     if(bigwormTimer<=0){
-      bigwormTimer=2.0+Math.random()*1.5;  // Faster (was 3.5+2.5)
+      bigwormTimer=(2.0+Math.random()*1.5)*spawnMult;
       spawnBigworm();
     }
     spiderTimer-=dt;
     if(spiderTimer<=0){
-      spiderTimer=1.5+Math.random()*1.5;   // Faster (was 2.5+2)
+      spiderTimer=(1.5+Math.random()*1.5)*spawnMult;
       spawnSpider();
     }
     // Red droids with increased fire rate - spawn more often
     droidTimer-=dt;
     if(droidTimer<=0){
-      droidTimer=2.5+Math.random()*2;      // Faster (was 4+3)
+      droidTimer=(2.5+Math.random()*2)*spawnMult;
       spawnDroid();
     }
   }
