@@ -372,6 +372,14 @@ var LEADERBOARD_API="https://www.dezertaudio.com/_functions";
 var LEADERBOARD_PAGE="https://www.dezertaudio.com/dezert-runner";
 var leaderboardCache=null;
 var scoreSubmitted=false;
+var BANNED_WORDS=["fuck","shit","ass","bitch","cunt","dick","cock","pussy","fag","faggot","nigger","nigga","nig","retard","rape","nazi","hitler","kkk","kike","spic","chink","gook","wetback","beaner","tranny","whore","slut","penis","vagina","anus","bastard","damn","piss","twat","wanker","douche","hoe","homo","queer","dyke","coon","cracker","honky","jap","paki","towelhead","camel jockey","sandnigger"];
+function isNameBanned(name){
+  var lower=name.toLowerCase().replace(/[^a-z]/g,"");
+  for(var i=0;i<BANNED_WORDS.length;i++){
+    if(lower.indexOf(BANNED_WORDS[i])!==-1) return true;
+  }
+  return false;
+}
 
 // === AUDIO SYSTEM (SNES-style procedural SFX) ===
 var audioCtx=null;
@@ -2879,6 +2887,11 @@ function submitScore(playerName,playerScore){
   if(scoreSubmitted){lbStatus.textContent="Already submitted!";return;}
   if(!playerName||playerName.trim().length===0){
     lbStatus.textContent="Enter a name!";
+    lbStatus.className="ov-lb-status error";
+    return;
+  }
+  if(isNameBanned(playerName)){
+    lbStatus.textContent="Invalid name!";
     lbStatus.className="ov-lb-status error";
     return;
   }
