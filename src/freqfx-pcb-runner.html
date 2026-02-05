@@ -1014,6 +1014,10 @@ function enterFullscreen(){
       fullscreenPrompt.classList.remove("visible");
     });
   } else {
+    // Fullscreen API not available (iOS) - open in new tab if embedded
+    if(isEmbedded){
+      window.open("https://dylan93-web.github.io/freqfx-pcb-runner/src/freqfx-pcb-runner.html","_blank");
+    }
     fullscreenPrompt.classList.remove("visible");
   }
 }
