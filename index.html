@@ -4800,38 +4800,41 @@ function drawInvincPickups(){
     ctx.globalAlpha=0.15;ctx.fillStyle="#ffffff";
     ctx.beginPath();ctx.arc(F(sx),F(sy),8,0,6.29);ctx.fill();
     ctx.globalAlpha=1;
-    // D logo from SVG - crescent swoosh with 4-pointed star
+    // D logo from SVG - WIDE FLAT horizontal swoosh with 4-pointed star
     ctx.save();
     ctx.translate(F(sx),F(sy));
-    // D crescent - outer arc (open on left, curves right)
+    // D swoosh - wide and flat (like a horizontal smile)
     ctx.fillStyle=C_INVINC;
     ctx.beginPath();
-    ctx.moveTo(-3,-8);  // top tip
-    ctx.quadraticCurveTo(6,-9,10,0);  // outer curve top
-    ctx.quadraticCurveTo(6,9,-3,8);   // outer curve bottom
-    // inner arc back up
-    ctx.quadraticCurveTo(4,6,7,0);    // inner curve bottom
-    ctx.quadraticCurveTo(4,-6,-3,-8); // inner curve top
+    // Outer edge - wide flat arc
+    ctx.moveTo(-4,-4);     // top-left start (thin)
+    ctx.quadraticCurveTo(4,-6,12,-2);  // sweep up-right
+    ctx.quadraticCurveTo(14,0,12,2);   // right tip (thick)
+    ctx.quadraticCurveTo(4,6,-4,4);    // sweep down-left
+    // Inner edge - back to start
+    ctx.quadraticCurveTo(2,3,8,1);     // inner bottom
+    ctx.quadraticCurveTo(10,0,8,-1);   // inner right
+    ctx.quadraticCurveTo(2,-3,-4,-4);  // inner top
     ctx.closePath();
     ctx.fill();
-    // Highlight
+    // Highlight on right bulge
     ctx.fillStyle="#ffee88";
     ctx.beginPath();
-    ctx.moveTo(7,-3);
-    ctx.quadraticCurveTo(9,0,7,3);
-    ctx.quadraticCurveTo(6,0,7,-3);
+    ctx.moveTo(10,-1);
+    ctx.quadraticCurveTo(12,0,10,1);
+    ctx.quadraticCurveTo(9,0,10,-1);
     ctx.fill();
-    // 4-pointed star (diamond shape, left of D opening)
+    // 4-pointed star (to the left)
     var stX=-7;
     ctx.fillStyle=C_INVINC;
     ctx.beginPath();
     ctx.moveTo(stX-4,0);   // left point
-    ctx.lineTo(stX,-5);    // top point
+    ctx.lineTo(stX,-4);    // top point
     ctx.lineTo(stX+3,0);   // right point
-    ctx.lineTo(stX,5);     // bottom point
+    ctx.lineTo(stX,4);     // bottom point
     ctx.closePath();
     ctx.fill();
-    // Star center highlight
+    // Star highlight
     ctx.fillStyle="#ffee88";
     ctx.beginPath();
     ctx.arc(stX,0,1.5,0,6.29);
@@ -4841,7 +4844,7 @@ function drawInvincPickups(){
     var sparkle=Math.sin(inp.bob*3)>0.5;
     if(sparkle){
       ctx.globalAlpha=0.8;
-      R(sx-8,sy,1,1,"#ffffff");
+      R(sx+10,sy,1,1,"#ffffff");
       R(sx+7,sy,2,2,"#ffffff");
       ctx.globalAlpha=1;
     }
