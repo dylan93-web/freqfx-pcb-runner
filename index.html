@@ -183,8 +183,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
       <div class="ov-best" id="title-best">BEST: 0</div>
       <button class="ov-btn" id="btn-start">START</button>
       <button class="ov-btn" id="btn-howto">HOW TO PLAY</button>
-      <button class="ov-btn ov-btn-small" id="btn-title-lb">LEADERBOARD</button>
-      <button class="ov-btn ov-btn-alt ov-btn-small" id="btn-notify">NOTIFY ME</button>
+      <button class="ov-btn" id="btn-title-lb">LEADERBOARD</button>
     </div>
     <div id="scr-howto" class="ov-panel ov-hidden">
       <div class="ov-heading">HOW TO PLAY</div>
@@ -2067,7 +2066,6 @@ document.addEventListener("keyup",function(e){
 document.getElementById("btn-start").addEventListener("click",startGame);
 document.getElementById("btn-howto").addEventListener("click",function(){showScreen("howto");});
 document.getElementById("btn-title-lb").addEventListener("click",function(){loadLeaderboard();showScreen("leaderboard");});
-document.getElementById("btn-notify").addEventListener("click",function(){});
 document.getElementById("btn-back").addEventListener("click",function(){showScreen("title");});
 document.getElementById("btn-resume").addEventListener("click",function(){state="playing";showScreen("playing");});
 document.getElementById("btn-retry").addEventListener("click",startGame);
