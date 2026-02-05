@@ -2066,9 +2066,8 @@ document.addEventListener("keydown",function(e){
     if(e.code==="Enter"){state="paused";showScreen("paused");}
   } else if(state==="paused"){
     if(e.code==="Enter"){state="playing";showScreen("playing");}
-  } else if(state==="gameover"){
-    if(e.code==="Enter"||e.code==="Space") startGame();
   }
+  // Note: gameover state has no keyboard shortcuts - must click RETRY button
   if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code)!==-1) e.preventDefault();
 });
 document.addEventListener("keyup",function(e){
