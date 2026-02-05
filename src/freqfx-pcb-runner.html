@@ -81,6 +81,25 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 .ov-lb-status.error{color:#ff8888}
 #leaderboard-submit{display:flex;flex-direction:column;align-items:center;margin:6px 0}
 #leaderboard-submit.ov-hidden{display:none}
+/* Leaderboard display screen */
+.ov-panel-lb{max-height:80vh;width:280px}
+.lb-header{display:flex;padding:6px 4px;border-bottom:1px solid rgba(255,200,180,0.3);font:bold 10px monospace;color:#aa9988;letter-spacing:1px}
+.lb-scores{max-height:200px;overflow-y:auto;margin:4px 0}
+.lb-scores::-webkit-scrollbar{width:6px}
+.lb-scores::-webkit-scrollbar-track{background:rgba(0,0,0,0.3)}
+.lb-scores::-webkit-scrollbar-thumb{background:rgba(255,200,180,0.3);border-radius:3px}
+.lb-row{display:flex;padding:5px 4px;border-bottom:1px solid rgba(255,200,180,0.08);font:11px monospace;color:#ccbb99}
+.lb-row:hover{background:rgba(255,200,180,0.05)}
+.lb-rank{width:28px;text-align:center}
+.lb-name{flex:1;overflow:hidden;text-overflow:ellipsis}
+.lb-score{width:60px;text-align:right;color:#88ff88}
+.lb-level{width:32px;text-align:center;color:#88ccff}
+.lb-top1{color:#ffd700;text-shadow:0 0 6px rgba(255,215,0,0.4)}
+.lb-top2{color:#c0c0c0}
+.lb-top3{color:#cd7f32}
+.lb-loading,.lb-error{text-align:center;padding:20px;font:11px monospace;color:#887766}
+.lb-error{color:#ff8888}
+.lb-empty{text-align:center;padding:20px;font:11px monospace;color:#887766}
 /* DOM HUD - SNES pixel font style (2x size) */
 #dom-hud{position:absolute;top:0;left:0;width:100%;height:auto;display:none;z-index:4;pointer-events:none;padding:8px 12px;font-family:'Press Start 2P',monospace}
 #dom-hud.visible{display:flex;justify-content:space-between;align-items:flex-start}
@@ -149,7 +168,8 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
       <div class="ov-best" id="title-best">BEST: 0</div>
       <button class="ov-btn" id="btn-start">START</button>
       <button class="ov-btn" id="btn-howto">HOW TO PLAY</button>
-      <button class="ov-btn ov-btn-alt" id="btn-notify">NOTIFY ME</button>
+      <button class="ov-btn ov-btn-small" id="btn-title-lb">LEADERBOARD</button>
+      <button class="ov-btn ov-btn-alt ov-btn-small" id="btn-notify">NOTIFY ME</button>
     </div>
     <div id="scr-howto" class="ov-panel ov-hidden">
       <div class="ov-heading">HOW TO PLAY</div>
@@ -165,12 +185,26 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
         <button class="ov-mute-btn" id="btn-mute">🔊</button>
       </div>
       <button class="ov-btn ov-btn-small" id="btn-pause-howto">HOW TO PLAY</button>
+      <button class="ov-btn ov-btn-small" id="btn-pause-lb">LEADERBOARD</button>
       <div class="ov-pause-hint" id="pause-hint"></div>
     </div>
     <div id="scr-pause-howto" class="ov-panel ov-hidden">
       <div class="ov-heading">HOW TO PLAY</div>
       <div class="ov-text" id="pause-howto-text"></div>
       <button class="ov-back" id="btn-pause-back">BACK TO PAUSE</button>
+    </div>
+    <div id="scr-leaderboard" class="ov-panel ov-panel-lb ov-hidden">
+      <div class="ov-heading">🏆 LEADERBOARD</div>
+      <div class="lb-header">
+        <span class="lb-rank">#</span>
+        <span class="lb-name">NAME</span>
+        <span class="lb-score">SCORE</span>
+        <span class="lb-level">LVL</span>
+      </div>
+      <div id="lb-scores" class="lb-scores">
+        <div class="lb-loading">Loading...</div>
+      </div>
+      <button class="ov-back" id="btn-lb-back">BACK</button>
     </div>
     <div id="scr-gameover" class="ov-panel ov-hidden">
       <div class="ov-go-title">GAME OVER</div>
@@ -935,6 +969,7 @@ var scrTitle=document.getElementById("scr-title");
 var scrHowto=document.getElementById("scr-howto");
 var scrPaused=document.getElementById("scr-paused");
 var scrPauseHowto=document.getElementById("scr-pause-howto");
+var scrLeaderboard=document.getElementById("scr-leaderboard");
 var scrGameover=document.getElementById("scr-gameover");
 var titleBest=document.getElementById("title-best");
 var howtoText=document.getElementById("howto-text");
@@ -1010,11 +1045,12 @@ pauseHint.textContent=isMobile?"Tap RESUME":"ENTER = RESUME";
 function showScreen(name){
   scrTitle.classList.add("ov-hidden");scrHowto.classList.add("ov-hidden");
   scrPaused.classList.add("ov-hidden");scrGameover.classList.add("ov-hidden");
-  scrPauseHowto.classList.add("ov-hidden");
+  scrPauseHowto.classList.add("ov-hidden");scrLeaderboard.classList.add("ov-hidden");
   if(name==="title"){scrTitle.classList.remove("ov-hidden");overlay.classList.add("active");domHud.classList.remove("visible");}
   else if(name==="howto"){scrHowto.classList.remove("ov-hidden");overlay.classList.add("active");}
   else if(name==="paused"){scrPaused.classList.remove("ov-hidden");overlay.classList.add("active");}
   else if(name==="pause-howto"){scrPauseHowto.classList.remove("ov-hidden");overlay.classList.add("active");}
+  else if(name==="leaderboard"){scrLeaderboard.classList.remove("ov-hidden");overlay.classList.add("active");}
   else if(name==="gameover"){scrGameover.classList.remove("ov-hidden");overlay.classList.add("active");}
   else{overlay.classList.remove("active");domHud.classList.add("visible");}
 }
@@ -1936,6 +1972,7 @@ document.addEventListener("keyup",function(e){
 
 document.getElementById("btn-start").addEventListener("click",startGame);
 document.getElementById("btn-howto").addEventListener("click",function(){showScreen("howto");});
+document.getElementById("btn-title-lb").addEventListener("click",function(){loadLeaderboard();showScreen("leaderboard");});
 document.getElementById("btn-notify").addEventListener("click",function(){});
 document.getElementById("btn-back").addEventListener("click",function(){showScreen("title");});
 document.getElementById("btn-resume").addEventListener("click",function(){state="playing";showScreen("playing");});
@@ -1945,7 +1982,8 @@ document.getElementById("btn-submit-score").addEventListener("click",function(){
   submitScore(nameInput.value,score);
 });
 document.getElementById("btn-leaderboard").addEventListener("click",function(){
-  window.open(LEADERBOARD_PAGE,"_blank");
+  loadLeaderboard();
+  showScreen("leaderboard");
 });
 document.getElementById("lb-name-input").addEventListener("keypress",function(e){
   if(e.key==="Enter"){
@@ -1988,6 +2026,43 @@ document.getElementById("btn-pause-howto").addEventListener("click",function(){
 document.getElementById("btn-pause-back").addEventListener("click",function(){
   showScreen("paused");
 });
+document.getElementById("btn-pause-lb").addEventListener("click",function(){
+  loadLeaderboard();
+  showScreen("leaderboard");
+});
+document.getElementById("btn-lb-back").addEventListener("click",function(){
+  if(state==="paused") showScreen("paused");
+  else if(state==="gameover") showScreen("gameover");
+  else showScreen("title");
+});
+
+function loadLeaderboard(){
+  var container=document.getElementById("lb-scores");
+  container.innerHTML='<div class="lb-loading">Loading...</div>';
+  fetch(LEADERBOARD_API+"/leaderboard")
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!data.items||data.items.length===0){
+        container.innerHTML='<div class="lb-empty">No scores yet.<br>Be the first!</div>';
+        return;
+      }
+      container.innerHTML=data.items.map(function(item,i){
+        var cls="lb-row";
+        if(i===0) cls+=" lb-top1";
+        else if(i===1) cls+=" lb-top2";
+        else if(i===2) cls+=" lb-top3";
+        return '<div class="'+cls+'">'+
+          '<span class="lb-rank">'+item.rank+'</span>'+
+          '<span class="lb-name">'+item.playerName+'</span>'+
+          '<span class="lb-score">'+item.score+'</span>'+
+          '<span class="lb-level">'+item.level+'</span>'+
+        '</div>';
+      }).join("");
+    })
+    .catch(function(){
+      container.innerHTML='<div class="lb-error">Could not load leaderboard</div>';
+    });
+}
 
 if(isMobile){
   mobileButtons.forEach(function(mb){
