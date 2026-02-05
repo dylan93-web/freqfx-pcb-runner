@@ -1244,8 +1244,11 @@ var bigworms=[],daggers=[];
 var spiders=[],gooDrops=[];
 var torches=[];
 var stars=[];
-var score=0,maxX=0;
+var score=0,distance=0,maxX=0;
 var bestScore=parseInt(localStorage.getItem("freqfx_best"))||0;
+// Scoring: distance (1:1) + enemy kills (10pts) + item pickups (5pts)
+var SCORE_ENEMY_KILL=10;
+var SCORE_ITEM_PICKUP=5;
 var gameTime=0,spawnTimer=0,wormTimer=0,flierTimer=0,droidTimer=0;
 var lastTime=0,shakeTimer=0,shimmerOffset=0;
 var held={left:false,right:false,jump:false,dash:false,down:false};
@@ -1499,7 +1502,7 @@ function resetGame(){
   fliers=[];drops=[];droids=[];lasers=[];
   bigworms=[];daggers=[];spiders=[];gooDrops=[];torches=[];
   heartPickups=[];powerCells=[];invincPickups=[];sandworms=[];
-  score=0;maxX=60;gameTime=0;spawnTimer=SAFE_START;shakeTimer=0;lastGenX=0;lastPowerX=0;lastHeartX=0;lastInvincX=0;
+  score=0;distance=0;maxX=60;gameTime=0;spawnTimer=SAFE_START;shakeTimer=0;lastGenX=0;lastPowerX=0;lastHeartX=0;lastInvincX=0;
   stompFlash=0;stompCooldown=0;
   level=1;levelTransitionTimer=0;freqModeTimer=0;spawnPauseTimer=0;pitFallTimer=0;pitFallScroll=0;level3GraceTimer=0;
   invincSpawned={1:false,2:false,3:false};
@@ -1567,7 +1570,7 @@ function spawnDroid(){
 
 // Level 3 enemies - speed scales with distance
 function getL3DifficultyMult(){
-  var distPast1000=Math.max(0,score-LEVEL_3_THRESHOLD);
+  var distPast1000=Math.max(0,distance-LEVEL_3_THRESHOLD);
   return 1+Math.floor(distPast1000/200)*0.1; // +10% every 200 dist
 }
 
@@ -2228,8 +2231,8 @@ function update(dt){
   if(player.jumpBufferTimer>0) player.jumpBufferTimer=Math.max(0,player.jumpBufferTimer-dt*1000);
   if(player.coyoteTimer>0) player.coyoteTimer=Math.max(0,player.coyoteTimer-dt*1000);
 
-  // Level transition check
-  if(level===1&&score>=LEVEL_2_THRESHOLD){
+  // Level transition check (based on distance, not score)
+  if(level===1&&distance>=LEVEL_2_THRESHOLD){
     level=2;
     levelTransitionTimer=LEVEL_TRANSITION_TIME;
     spawnPauseTimer=SPAWN_PAUSE_TIME;
@@ -2239,8 +2242,8 @@ function update(dt){
     hudLevel.textContent="LVL 2";
     hudLevel.style.color="#cc88ff";
   }
-  // Level 3 transition with long visible pit fall
-  if(level===2&&score>=LEVEL_3_THRESHOLD&&pitFallTimer<=0){
+  // Level 3 transition with long visible pit fall (based on distance)
+  if(level===2&&distance>=LEVEL_3_THRESHOLD&&pitFallTimer<=0){
     pitFallTimer=LEVEL_3_TRANSITION_TIME;
     pitFallScroll=0;
     spawnPauseTimer=LEVEL_3_TRANSITION_TIME+1.5; // Extended spawn delay
@@ -2279,8 +2282,8 @@ function update(dt){
   // Decrement Level 3 grace timer
   if(level3GraceTimer>0) level3GraceTimer-=dt;
 
-  // Boss spawn trigger - immediately when entering Level 3 (score 1000)
-  if(score>=BOSS_SPAWN_THRESHOLD&&!bossSpawned&&!boss.active){
+  // Boss spawn trigger - immediately when entering Level 3 (distance 1000)
+  if(distance>=BOSS_SPAWN_THRESHOLD&&!bossSpawned&&!boss.active){
     spawnBoss();
   }
 
@@ -2378,7 +2381,7 @@ function update(dt){
 
   if(player.x>maxX){
     var gained=Math.floor((player.x-maxX)/DIST_PER_POINT);
-    if(gained>0){score+=gained;maxX+=gained*DIST_PER_POINT;}
+    if(gained>0){distance+=gained;score+=gained;maxX+=gained*DIST_PER_POINT;}
   }
 
   var canJump=player.onGround||player.coyoteTimer>0;
@@ -2455,7 +2458,7 @@ function update(dt){
   // Level 3 enemies (cave only: big worms, spiders, red droids - NO ships/fliers)
   // PROGRESSIVE DIFFICULTY: +10% every 200 distance past 1000
   if(level===3){
-    var distPast1000=Math.max(0,score-LEVEL_3_THRESHOLD);
+    var distPast1000=Math.max(0,distance-LEVEL_3_THRESHOLD);
     var difficultyMult=1+Math.floor(distPast1000/200)*0.1; // 1.0, 1.1, 1.2, etc.
     var spawnMult=1/difficultyMult; // Faster spawns = shorter timers
 
@@ -2853,6 +2856,7 @@ function update(dt){
     if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,hp.x-5,hpY-5,10,10)){
       player.lives=Math.min(LIVES_CAP,player.lives+1);
       buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
+      score+=SCORE_ITEM_PICKUP;
       playSfx("pickupHeart");
       spawnParticles(hp.x,hpY,C_HEART_PU,10);
       heartPickups.splice(hi,1);
@@ -2867,6 +2871,7 @@ function update(dt){
       player.powerTimer=POWER_DURATION;
       player.dashCharges=Math.min(MAX_DASH_CHARGES,player.dashCharges+1);
       buildDashPips(player.dashCharges,MAX_DASH_CHARGES);
+      score+=SCORE_ITEM_PICKUP;
       playSfx("pickupPower");
       spawnParticles(pw.x,pwY,C_POWER,12);
       powerCells.splice(pc,1);
@@ -2881,6 +2886,7 @@ function update(dt){
     if(rectsOverlap(pr.x,pr.y,pr.w,pr.h,inp.x-6,inpY-6,12,12)){
       player.invincTimer=INVINC_DURATION;
       freqModeTimer=FREQ_MODE_MSG_TIME;
+      score+=SCORE_ITEM_PICKUP;
       playSfx("pickupInvinc");
       spawnParticles(inp.x,inpY,C_INVINC,16);
       spawnParticles(inp.x,inpY,"#ffffff",8);
@@ -2915,8 +2921,8 @@ function update(dt){
     else if(sp.x>cam.x+W+120){sp.x=cam.x-20-Math.random()*40;sp.y=GROUND_Y+2+Math.random()*25;}
   }
 
-  // DOM HUD
-  hudCenter.textContent="DIST: "+score;
+  // DOM HUD - show score (distance + bonuses) and distance
+  hudCenter.textContent="SCORE: "+score+" | DIST: "+distance;
   hudHi.textContent="HI: "+bestScore;
   if(player.invuln>0&&gameTime<SAFE_START+0.5) hudSafe.style.display="block";
   else hudSafe.style.display="none";
