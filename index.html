@@ -2380,6 +2380,11 @@ function update(dt){
 
   player.x+=player.vx*dt;
   if(player.x<16) player.x=16;
+  // Boss arena wall - can't run past the fight
+  if(boss.active&&!boss.defeated){
+    if(player.x<bossArenaLeft+10){player.x=bossArenaLeft+10;player.vx=0;}
+    if(player.x>bossArenaRight-10){player.x=bossArenaRight-10;player.vx=0;}
+  }
 
   if(player.onGround){
     var newSurf=groundYAt(player.x);
@@ -2388,11 +2393,15 @@ function update(dt){
   }
 
   var screenX=player.x-cam.x;
-  if(screenX>CAM_RIGHT_MARGIN) cam.x=player.x-CAM_RIGHT_MARGIN;
-  else if(screenX<CAM_LEFT_MARGIN) cam.x=player.x-CAM_LEFT_MARGIN;
+  // Lock camera during boss fight
+  if(!(boss.active&&!boss.defeated)){
+    if(screenX>CAM_RIGHT_MARGIN) cam.x=player.x-CAM_RIGHT_MARGIN;
+    else if(screenX<CAM_LEFT_MARGIN) cam.x=player.x-CAM_LEFT_MARGIN;
+  }
   if(cam.x<0) cam.x=0;
 
-  if(player.x>maxX){
+  // Don't accumulate distance/score during boss fight
+  if(player.x>maxX&&!(boss.active&&!boss.defeated)){
     var gained=Math.floor((player.x-maxX)/DIST_PER_POINT);
     if(gained>0){distance+=gained;score+=gained;maxX+=gained*DIST_PER_POINT;}
   }
@@ -4441,6 +4450,37 @@ function drawTorches(){
   }
 }
 
+// === BOSS ARENA WALLS ===
+function drawBossArenaWalls(){
+  if(!boss.active||boss.defeated) return;
+  // Draw rocky walls on left and right edges of arena
+  var wallW=15;
+  var wallH=60;
+  var leftX=wxf(bossArenaLeft);
+  var rightX=wxf(bossArenaRight);
+  // Left wall
+  ctx.fillStyle="#3a2a1a";
+  ctx.fillRect(F(leftX-wallW),GROUND_Y-wallH,wallW,wallH);
+  ctx.fillStyle="#4a3a2a";
+  ctx.fillRect(F(leftX-wallW+2),GROUND_Y-wallH+5,wallW-4,wallH-5);
+  ctx.fillStyle="#2a1a0a";
+  ctx.fillRect(F(leftX-3),GROUND_Y-wallH,3,wallH);
+  // Right wall
+  ctx.fillStyle="#3a2a1a";
+  ctx.fillRect(F(rightX),GROUND_Y-wallH,wallW,wallH);
+  ctx.fillStyle="#4a3a2a";
+  ctx.fillRect(F(rightX+2),GROUND_Y-wallH+5,wallW-4,wallH-5);
+  ctx.fillStyle="#2a1a0a";
+  ctx.fillRect(F(rightX),GROUND_Y-wallH,3,wallH);
+  // Rock texture spots
+  ctx.fillStyle="#5a4a3a";
+  for(var i=0;i<5;i++){
+    var ry=GROUND_Y-10-i*10;
+    ctx.fillRect(F(leftX-wallW+4+i%3*3),ry,3,3);
+    ctx.fillRect(F(rightX+4+(i+1)%3*3),ry,3,3);
+  }
+}
+
 // === BOSS DRAWING ===
 // Dune-style sandworm with gaping mouth and teeth
 function drawBoss(){
@@ -4984,7 +5024,7 @@ function draw(){
   drawProjectiles();drawDrops();drawLasers();
   drawBigworms();drawDaggers();drawSpiders();drawGooDrops();
   if(level===3) drawTorches();
-  drawBoss();drawBossProjectiles();drawPlayerLasers();
+  drawBossArenaWalls();drawBoss();drawBossProjectiles();drawPlayerLasers();
   drawRobot();drawParticles();drawScorePopups();
   drawCaveOverlay();
 
