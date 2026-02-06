@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dezert Runner - Promo Loop</title>
+  <style>
+    body { margin: 0; background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .info { position: fixed; top: 10px; left: 10px; color: #666; font-family: monospace; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="info">Screen record this for GIF (transparent bg available)</div>
+  <canvas id="c"></canvas>
+  <script>
+var canvas = document.getElementById("c");
+var ctx = canvas.getContext("2d");
+
+// Canvas size - adjust as needed
+var W = 200;  // Width
+var H = 80;   // Height
+var SCALE = 4; // Pixel scale
+
+canvas.width = W * SCALE;
+canvas.height = H * SCALE;
+ctx.scale(SCALE, SCALE);
+
+// Ground position
+var GROUND_Y = H - 12;
+
+// Player state
+var player = {
+  x: -20,
+  y: GROUND_Y,
+  facing: 1,
+  animFrame: 0,
+  animTimer: 0
+};
+
+var shimmerOffset = 0;
+
+// Helper functions
+function F(v) { return Math.floor(v); }
+function R(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(F(x), F(y), w, h); }
+
+// Draw shadow
+function drawShadow(sx, sy, w) {
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = "#000";
+  ctx.beginPath();
+  ctx.ellipse(F(sx), F(sy), w, 2, 0, 0, 6.29);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+// Draw the robot (simplified from game)
+function drawRobot() {
+  var bx = F(player.x);
+  var by = F(player.y);
+  var f = player.facing;
+  var frame = player.animFrame;
+
+  // Colors - normal cyan robot
+  var blueDark = "#1a4060";
+  var blueMid = "#3080b0";
+  var blueLight = "#50a0d0";
+  var blueBright = "#70c0e8";
+  var glowEdge = "#90d8ff";
+  var visor = "#ff55aa";
+  var visorGlow = "#ff88cc";
+  var visorDark = "#cc3388";
+  var coreGlow = "#ff4488";
+  var outline = "#0a1828";
+
+  // Leg animation offsets
+  var lf = 0, rf = 0;
+  if (frame === 1) { lf = -2; rf = 1; }
+  else if (frame === 3) { lf = 1; rf = -2; }
+
+  // Shadow
+  drawShadow(bx, GROUND_Y + 1, 5);
+
+  // HELMET
+  ctx.fillStyle = outline;
+  ctx.beginPath(); ctx.arc(F(bx), F(by - 14), 7, 0, 6.29); ctx.fill();
+  ctx.fillStyle = blueDark;
+  ctx.beginPath(); ctx.arc(F(bx), F(by - 14), 6, 0, 6.29); ctx.fill();
+  ctx.fillStyle = blueMid;
+  ctx.beginPath(); ctx.arc(F(bx), F(by - 14), 5, 0, 6.29); ctx.fill();
+  ctx.fillStyle = blueLight;
+  ctx.beginPath(); ctx.arc(F(bx), F(by - 16), 4, 0, 3.14, true); ctx.fill();
+  ctx.fillStyle = blueBright;
+  ctx.beginPath(); ctx.arc(F(bx), F(by - 17), 3, 0, 3.14, true); ctx.fill();
+  ctx.fillStyle = glowEdge;
+  ctx.beginPath(); ctx.arc(F(bx), F(by - 18), 2, 0, 3.14, true); ctx.fill();
+
+  // Ear sensors
+  R(bx - 7, by - 15, 2, 3, outline); R(bx - 6, by - 14, 1, 2, blueMid);
+  R(bx + 5, by - 15, 2, 3, outline); R(bx + 5, by - 14, 1, 2, blueMid);
+
+  // VISOR
+  R(bx - 3, by - 15, 9, 4, outline);
+  R(bx - 2, by - 14, 8, 3, visorDark);
+  R(bx - 1, by - 14, 7, 2, visor);
+  R(bx, by - 13, 5, 1, visorGlow);
+  ctx.globalAlpha = 0.35; R(bx - 2, by - 16, 8, 5, visorGlow); ctx.globalAlpha = 1;
+
+  // TORSO
+  R(bx - 5, by - 10, 10, 8, outline);
+  R(bx - 4, by - 9, 8, 6, blueDark);
+  R(bx - 3, by - 8, 6, 4, blueMid);
+  R(bx - 2, by - 7, 4, 2, blueLight);
+  R(bx - 4, by - 9, 1, 5, blueLight); R(bx + 3, by - 9, 1, 5, blueLight);
+  R(bx - 3, by - 9, 1, 2, blueBright); R(bx + 2, by - 9, 1, 2, blueBright);
+
+  // CORE
+  R(bx - 1, by - 7, 2, 2, outline);
+  R(bx - 1, by - 7, 2, 2, coreGlow);
+  ctx.globalAlpha = 0.5 + Math.sin(shimmerOffset * 6) * 0.2;
+  R(bx - 2, by - 8, 4, 4, visor);
+  ctx.globalAlpha = 1;
+
+  // Belt
+  R(bx - 4, by - 3, 8, 2, outline); R(bx - 3, by - 2, 6, 1, blueMid);
+
+  // SHOULDERS
+  R(bx - 10, by - 11, 5, 5, outline); R(bx - 9, by - 10, 4, 4, blueDark); R(bx - 8, by - 9, 3, 3, blueMid);
+  R(bx - 9, by - 10, 1, 3, blueLight); R(bx - 7, by - 9, 1, 2, blueBright);
+  R(bx + 5, by - 11, 5, 5, outline); R(bx + 5, by - 10, 4, 4, blueDark); R(bx + 5, by - 9, 3, 3, blueMid);
+  R(bx + 8, by - 10, 1, 3, blueLight); R(bx + 6, by - 9, 1, 2, blueBright);
+
+  // ARMS (running animation)
+  var ao = frame === 1 ? -1 : frame === 3 ? 1 : 0;
+  R(bx - 9, by - 7 + ao, 3, 9, outline); R(bx - 8, by - 6 + ao, 2, 8, blueDark); R(bx - 8, by - 6 + ao, 1, 7, blueMid);
+  R(bx - 7, by - 5 + ao, 1, 5, blueLight);
+  R(bx + 6, by - 7 - ao, 3, 9, outline); R(bx + 6, by - 6 - ao, 2, 8, blueDark); R(bx + 6, by - 6 - ao, 1, 7, blueMid);
+  R(bx + 6, by - 5 - ao, 1, 5, blueLight);
+  R(bx - 8, by + ao, 2, 2, outline); R(bx - 7, by + 1 + ao, 1, 1, blueBright);
+  R(bx + 6, by - ao, 2, 2, outline); R(bx + 6, by + 1 - ao, 1, 1, blueBright);
+
+  // LEGS
+  R(bx - 5, by - 1 + lf, 4, 6 + Math.abs(lf), outline); R(bx - 4, by + lf, 3, 5 + Math.abs(lf), blueDark);
+  R(bx - 4, by + lf, 2, 4 + Math.abs(lf), blueMid); R(bx - 3, by + 1 + lf, 1, 3, blueLight);
+  R(bx + 1, by - 1 + rf, 4, 6 + Math.abs(rf), outline); R(bx + 1, by + rf, 3, 5 + Math.abs(rf), blueDark);
+  R(bx + 1, by + rf, 2, 4 + Math.abs(rf), blueMid); R(bx + 2, by + 1 + rf, 1, 3, blueLight);
+
+  // Boots
+  R(bx - 5, by + 4 + lf, 5, 1, outline); R(bx - 4, by + 3 + lf, 3, 1, blueBright); R(bx - 5, by + 4 + lf, 2, 1, glowEdge);
+  R(bx + 1, by + 4 + rf, 5, 1, outline); R(bx + 1, by + 3 + rf, 3, 1, blueBright); R(bx + 1, by + 4 + rf, 2, 1, glowEdge);
+
+  // Antenna
+  R(bx + f * 3, by - 20, 1, 2, blueMid); R(bx + f * 3, by - 21, 1, 1, visor);
+}
+
+// Draw simple ground
+function drawGround() {
+  // Sandy ground
+  R(0, GROUND_Y + 4, W, H - GROUND_Y, "#c4a35a");
+  R(0, GROUND_Y + 4, W, 2, "#d4b36a");
+
+  // Ground line
+  R(0, GROUND_Y + 3, W, 1, "#8b7355");
+}
+
+// Draw a small cactus
+function drawCactus(x) {
+  var cy = GROUND_Y + 3;
+  R(x, cy - 12, 3, 12, "#1a3a1a");
+  R(x + 1, cy - 10, 1, 8, "#2a5a2a");
+  R(x - 3, cy - 8, 4, 2, "#1a3a1a");
+  R(x - 3, cy - 10, 2, 4, "#1a3a1a");
+  R(x - 2, cy - 9, 1, 2, "#2a5a2a");
+  R(x + 3, cy - 6, 4, 2, "#1a3a1a");
+  R(x + 5, cy - 9, 2, 5, "#1a3a1a");
+  R(x + 5, cy - 8, 1, 3, "#2a5a2a");
+}
+
+// Animation loop
+var lastTime = 0;
+var ANIM_SPEED = 0.12; // seconds per frame
+var RUN_SPEED = 60; // pixels per second
+
+function update(time) {
+  var dt = (time - lastTime) / 1000;
+  lastTime = time;
+  shimmerOffset += dt;
+
+  // Animate running
+  player.animTimer += dt;
+  if (player.animTimer >= ANIM_SPEED) {
+    player.animTimer = 0;
+    player.animFrame = (player.animFrame + 1) % 4;
+  }
+
+  // Move player
+  player.x += RUN_SPEED * dt;
+
+  // Loop when off screen
+  if (player.x > W + 20) {
+    player.x = -20;
+  }
+
+  // Clear with transparency (for GIF with transparent bg)
+  ctx.clearRect(0, 0, W, H);
+
+  // Or use solid background color - uncomment one:
+  // ctx.fillStyle = "#87CEEB"; ctx.fillRect(0, 0, W, H); // Sky blue
+  // ctx.fillStyle = "#1a1a2e"; ctx.fillRect(0, 0, W, H); // Dark
+
+  // Draw scene
+  drawGround();
+  drawCactus(150);
+  drawRobot();
+
+  requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+  </script>
+</body>
+</html>

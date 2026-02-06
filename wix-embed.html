@@ -1,0 +1,105 @@
+<!-- DEZERT RUNNER - Wix Embed Widget -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { overflow: hidden; background: transparent; font-family: 'Press Start 2P', monospace; }
+  .container { position: relative; width: 840px; height: 105px; }
+  canvas { position: absolute; top: 0; left: 0; image-rendering: pixelated; image-rendering: crisp-edges; width: 100%; height: 100%; }
+  .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; pointer-events: none; }
+  .title { color: #70c0e8; font-size: 14px; text-shadow: 2px 2px 0 #0a1828, -1px -1px 0 #0a1828, 1px -1px 0 #0a1828, -1px 1px 0 #0a1828; }
+  .title span { color: #ff55aa; }
+  .play-btn { pointer-events: auto; cursor: pointer; background: linear-gradient(180deg, #ff55aa 0%, #cc3388 100%); color: #fff; font-family: 'Press Start 2P', monospace; font-size: 10px; padding: 8px 16px; border: 2px solid #0a1828; border-radius: 4px; text-shadow: 1px 1px 0 #0a1828; box-shadow: 0 3px 0 #0a1828; transition: all 0.1s; }
+  .play-btn:hover { background: linear-gradient(180deg, #ff77bb 0%, #dd4499 100%); transform: translateY(-1px); box-shadow: 0 4px 0 #0a1828; }
+  .play-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0a1828; }
+</style>
+<div class="container">
+  <canvas id="c"></canvas>
+  <div class="overlay">
+    <div class="title"><span>FREQ-2:</span> Dezert Runner</div>
+    <button class="play-btn" onclick="window.open('https://game.dezertaudio.com', '_blank')">PLAY NOW</button>
+  </div>
+</div>
+<script>
+(function(){
+var canvas = document.getElementById("c");
+var ctx = canvas.getContext("2d");
+var W = 280, H = 35, SCALE = 3;
+canvas.width = W * SCALE; canvas.height = H * SCALE; ctx.scale(SCALE, SCALE);
+var GROUND_Y = H - 2;
+var player = { x: -20, y: GROUND_Y, vy: 0, facing: 1, animFrame: 0, animTimer: 0 };
+var worm = { x: W + 40, length: 30, vx: -90 };
+var shimmerOffset = 0, GRAVITY = 400, JUMP_VEL = -130, PLAYER_SPEED = 60;
+function F(v) { return Math.floor(v); }
+function R(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(F(x), F(y), w, h); }
+function drawSandworm() {
+  var sx = worm.x, segments = 6, segLen = worm.length / segments;
+  for (var si = 0; si < segments; si++) {
+    var segX = sx + (si * segLen - worm.length / 2);
+    var segH = 5 + Math.sin((si / segments) * Math.PI) * 5;
+    var segW = segLen + 1, segY = GROUND_Y - segH;
+    var cr = F(120 - si * 5), cg = F(80 - si * 3), cb = F(90 - si * 4);
+    ctx.fillStyle = "rgb(" + Math.max(cr, 50) + "," + Math.max(cg, 40) + "," + Math.max(cb, 60) + ")";
+    ctx.beginPath(); ctx.ellipse(F(segX), GROUND_Y, segW / 2, segH, 0, Math.PI, 0); ctx.fill();
+    ctx.globalAlpha = 0.2; ctx.fillStyle = "#aa8888";
+    ctx.fillRect(F(segX - segW / 4), segY, F(segW / 2), 1); ctx.globalAlpha = 1;
+  }
+  var headX = sx - worm.length / 2;
+  ctx.fillStyle = "#a06060"; ctx.beginPath(); ctx.arc(F(headX), GROUND_Y - 4, 4, 0, 6.29); ctx.fill();
+  R(F(headX) - 2, GROUND_Y - 6, 2, 1, "#ff6644");
+}
+function drawRobot() {
+  var bx = F(player.x), by = F(player.y), f = player.facing, frame = player.animFrame;
+  var blueDark = "#1a4060", blueMid = "#3080b0", blueLight = "#50a0d0", blueBright = "#70c0e8", glowEdge = "#90d8ff";
+  var visor = "#ff55aa", visorGlow = "#ff88cc", visorDark = "#cc3388", coreGlow = "#ff4488", outline = "#0a1828";
+  var lf = 0, rf = 0, inAir = player.y < GROUND_Y;
+  if (!inAir) { if (frame === 1) { lf = -2; rf = 1; } else if (frame === 3) { lf = 1; rf = -2; } }
+  ctx.fillStyle = outline; ctx.beginPath(); ctx.arc(F(bx), F(by - 14), 7, 0, 6.29); ctx.fill();
+  ctx.fillStyle = blueDark; ctx.beginPath(); ctx.arc(F(bx), F(by - 14), 6, 0, 6.29); ctx.fill();
+  ctx.fillStyle = blueMid; ctx.beginPath(); ctx.arc(F(bx), F(by - 14), 5, 0, 6.29); ctx.fill();
+  ctx.fillStyle = blueLight; ctx.beginPath(); ctx.arc(F(bx), F(by - 16), 4, 0, 3.14, true); ctx.fill();
+  ctx.fillStyle = blueBright; ctx.beginPath(); ctx.arc(F(bx), F(by - 17), 3, 0, 3.14, true); ctx.fill();
+  ctx.fillStyle = glowEdge; ctx.beginPath(); ctx.arc(F(bx), F(by - 18), 2, 0, 3.14, true); ctx.fill();
+  R(bx - 7, by - 15, 2, 3, outline); R(bx - 6, by - 14, 1, 2, blueMid);
+  R(bx + 5, by - 15, 2, 3, outline); R(bx + 5, by - 14, 1, 2, blueMid);
+  R(bx - 3, by - 15, 9, 4, outline); R(bx - 2, by - 14, 8, 3, visorDark);
+  R(bx - 1, by - 14, 7, 2, visor); R(bx, by - 13, 5, 1, visorGlow);
+  ctx.globalAlpha = 0.35; R(bx - 2, by - 16, 8, 5, visorGlow); ctx.globalAlpha = 1;
+  R(bx - 5, by - 10, 10, 8, outline); R(bx - 4, by - 9, 8, 6, blueDark);
+  R(bx - 3, by - 8, 6, 4, blueMid); R(bx - 2, by - 7, 4, 2, blueLight);
+  R(bx - 4, by - 9, 1, 5, blueLight); R(bx + 3, by - 9, 1, 5, blueLight);
+  R(bx - 1, by - 7, 2, 2, coreGlow);
+  ctx.globalAlpha = 0.5 + Math.sin(shimmerOffset * 6) * 0.2;
+  R(bx - 2, by - 8, 4, 4, visor); ctx.globalAlpha = 1;
+  R(bx - 4, by - 3, 8, 2, outline); R(bx - 3, by - 2, 6, 1, blueMid);
+  R(bx - 10, by - 11, 5, 5, outline); R(bx - 9, by - 10, 4, 4, blueDark); R(bx - 8, by - 9, 3, 3, blueMid);
+  R(bx + 5, by - 11, 5, 5, outline); R(bx + 5, by - 10, 4, 4, blueDark); R(bx + 5, by - 9, 3, 3, blueMid);
+  var ao = frame === 1 ? -1 : frame === 3 ? 1 : 0; if (inAir) ao = 0;
+  R(bx - 9, by - 7 + ao, 3, 9, outline); R(bx - 8, by - 6 + ao, 2, 8, blueDark); R(bx - 8, by - 6 + ao, 1, 7, blueMid);
+  R(bx + 6, by - 7 - ao, 3, 9, outline); R(bx + 6, by - 6 - ao, 2, 8, blueDark); R(bx + 6, by - 6 - ao, 1, 7, blueMid);
+  R(bx - 8, by + ao, 2, 2, outline); R(bx + 6, by - ao, 2, 2, outline);
+  R(bx - 5, by - 1 + lf, 4, 6 + Math.abs(lf), outline); R(bx - 4, by + lf, 3, 5 + Math.abs(lf), blueDark);
+  R(bx - 4, by + lf, 2, 4 + Math.abs(lf), blueMid);
+  R(bx + 1, by - 1 + rf, 4, 6 + Math.abs(rf), outline); R(bx + 1, by + rf, 3, 5 + Math.abs(rf), blueDark);
+  R(bx + 1, by + rf, 2, 4 + Math.abs(rf), blueMid);
+  R(bx - 5, by + 4 + lf, 5, 1, outline); R(bx - 4, by + 3 + lf, 3, 1, blueBright);
+  R(bx + 1, by + 4 + rf, 5, 1, outline); R(bx + 1, by + 3 + rf, 3, 1, blueBright);
+  R(bx + f * 3, by - 20, 1, 2, blueMid); R(bx + f * 3, by - 21, 1, 1, visor);
+}
+var lastTime = 0;
+function update(time) {
+  var dt = (time - lastTime) / 1000; lastTime = time; shimmerOffset += dt;
+  player.animTimer += dt;
+  if (player.animTimer >= 0.1) { player.animTimer = 0; player.animFrame = (player.animFrame + 1) % 4; }
+  player.x += PLAYER_SPEED * dt; worm.x += worm.vx * dt;
+  var wormHead = worm.x - worm.length / 2;
+  var dist = wormHead - player.x;
+  if (dist > 0 && dist < 35 && player.y >= GROUND_Y) { player.vy = JUMP_VEL; }
+  player.vy += GRAVITY * dt; player.y += player.vy * dt;
+  if (player.y >= GROUND_Y) { player.y = GROUND_Y; player.vy = 0; }
+  if (player.x > W + 20 && worm.x < -40) { player.x = -20; worm.x = W + 40; }
+  ctx.clearRect(0, 0, W, H); drawSandworm(); drawRobot();
+  requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+})();
+</script>
