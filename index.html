@@ -138,6 +138,19 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 #hud-power-label{font-family:'Press Start 2P',monospace;font-size:16px;letter-spacing:2px;color:#44aaff;text-shadow:3px 3px 0 #000}
 #hud-power-bar{width:100px;height:16px;background:#001122;border:3px solid #44aaff;overflow:hidden}
 #hud-power-fill{width:100%;height:100%;background:#44aaff;transition:width 0.1s steps(10)}
+/* === CUTSCENE SPEECH BUBBLE - SNES Style === */
+#cutscene-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20;opacity:0;transition:opacity 0.3s}
+#cutscene-overlay.active{opacity:1;pointer-events:auto}
+#cutscene-vignette{position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.4) 100%);pointer-events:none}
+#speech-bubble{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);min-width:300px;max-width:80%;background:#f8f8f0;border:4px solid #222;border-radius:8px;padding:12px 16px;font-family:'Press Start 2P',monospace;font-size:11px;line-height:1.8;color:#222;box-shadow:4px 4px 0 #000;display:none;z-index:25}
+#speech-bubble.visible{display:block}
+#speech-speaker{color:#cc3366;margin-bottom:8px;font-size:10px}
+#speech-text{min-height:36px}
+#speech-continue{position:absolute;bottom:8px;right:12px;font-size:8px;color:#666;animation:blink-triangle 0.6s infinite}
+@keyframes blink-triangle{0%,100%{opacity:1}50%{opacity:0.3}}
+/* Level transition banner */
+#level-banner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Press Start 2P',monospace;font-size:28px;color:#ffcc44;text-shadow:3px 3px 0 #000;z-index:15;opacity:0;transition:opacity 0.4s;pointer-events:none}
+#level-banner.visible{opacity:1}
 </style>
 </head>
 <body>
@@ -175,6 +188,15 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
     <div id="boss-name">CAVE WORM</div>
     <div id="boss-health-bar"><div id="boss-health-fill"></div></div>
   </div>
+  <div id="cutscene-overlay">
+    <div id="cutscene-vignette"></div>
+    <div id="speech-bubble">
+      <div id="speech-speaker"></div>
+      <div id="speech-text"></div>
+      <div id="speech-continue">▼</div>
+    </div>
+  </div>
+  <div id="level-banner"></div>
   <div id="overlay" class="active">
     <div id="scr-title" class="ov-panel">
       <div class="ov-title">FREQ-2</div>
@@ -436,10 +458,11 @@ function playLevelMusic(lvl){
     level2Music.currentTime=0;
     level2Music.play().catch(function(){});
     currentMusicLevel=2;
-  } else if(lvl===3&&level3Music){
+  } else if((lvl===3||lvl===4)&&level3Music){
+    // Level 4 uses Level 3 music for now (Forge Tunnels)
     level3Music.currentTime=0;
     level3Music.play().catch(function(){});
-    currentMusicLevel=3;
+    currentMusicLevel=lvl;
   }
 }
 
@@ -964,6 +987,12 @@ var C3_TDUNE_SHADOW="#100a04";
 var C3_TDUNE_CREST="#3a2c1c";
 var C3_TDUNE_EDGE="#0a0600";
 
+// Level 4 Forge Tunnels colors (warmer, more orange/red)
+var C4_GROUND="#251008";
+var C4_GROUND_DARK="#180a04";
+var C4_GROUND_DEEPER="#0c0400";
+var C4_GROUND_LINE="#3a1c0c";
+
 // Level 3 enemy colors
 var C_BIGWORM="#6a4030";
 var C_BIGWORM_DARK="#4a2820";
@@ -1267,7 +1296,39 @@ var level3GraceTimer=0; // Invuln grace period during L3 transition
 var LEVEL_3_GRACE_TIME=2.5; // Total grace: pit fall + 0.5s after landing
 
 // Invincibility once per level gate
-var invincSpawned={1:false,2:false,3:false};
+var invincSpawned={1:false,2:false,3:false,4:false};
+
+// === CUTSCENE SYSTEM ===
+var cutsceneActive=false;
+var cutsceneClock=0;
+var cutsceneScript=[];
+var cutsceneStepIndex=0;
+var cutsceneZoom=1.0;
+var cutsceneTargetZoom=1.0;
+var cutsceneCamLock={x:0};
+var cutsceneDezTriggered=false;
+var cutsceneGracePeriod=0;
+
+// Dialogue system
+var dialogueQueue=[];
+var dialogueActive=false;
+var dialogueText="";
+var dialogueDisplayed="";
+var dialogueSpeaker="";
+var dialogueCharIndex=0;
+var dialogueCharTimer=0;
+var dialogueWaitingForContinue=false;
+var DIALOGUE_CHAR_SPEED=0.04; // seconds per character
+
+// Dez NPC for cutscene
+var dez={active:false,x:0,y:GROUND_Y,vx:0,facing:-1,animFrame:0,animTimer:0,
+  shooting:false,shootTimer:0,shotsRemaining:0,lasers:[]};
+var DEZ_SPEED=50;
+var DEZ_LASER_SPEED=200;
+var DEZ_SHOOT_COOLDOWN=0.25;
+
+// Level 4 constants
+var LEVEL_4_THRESHOLD=1500; // Level 3 ends at 500 distance within it (1000+500)
 
 // FREQ mode message timer
 var freqModeTimer=0;
@@ -1337,13 +1398,14 @@ function generateWorld(upToX){
       var dh=10+Math.floor(Math.random()*12);
       terrainDunes.push({x:segStart+40+Math.random()*30,w:dw,h:dh});
     }
-    // Platform spawn chance is higher in Level 2, even higher in Level 3
-    var platChance=level===3?0.5:level===2?0.4:0.25;
+    // Platform spawn chance is higher in Level 2, even higher in Level 3/4
+    var isCaveLevel=level===3||level===4;
+    var platChance=isCaveLevel?0.5:level===2?0.4:0.25;
     if(Math.random()<platChance){
       var itemX=segStart+20+Math.random()*40;
       var localGround=groundYAt(itemX);
-      // Level 3: platforms go higher (3-4 tiers)
-      var extraHeight=level===3?20+Math.random()*15:0;
+      // Level 3/4: platforms go higher (3-4 tiers)
+      var extraHeight=isCaveLevel?20+Math.random()*15:0;
       var itemY=localGround-MAX_JUMP_HEIGHT-12-Math.random()*10-extraHeight;
       if(itemY<18) itemY=18;
       var itemType="power";
@@ -1353,14 +1415,14 @@ function generateWorld(upToX){
       var highX=itemX-highW/2;
       var needStep=localGround-highY>MAX_JUMP_HEIGHT;
 
-      // Varied platform layout patterns - Level 3 gets more complex patterns
-      var layoutPattern=Math.floor(Math.random()*(level===3?8:5));
+      // Varied platform layout patterns - Level 3/4 gets more complex patterns
+      var layoutPattern=Math.floor(Math.random()*(isCaveLevel?8:5));
       if(needStep){
         var lowY=localGround-MAX_JUMP_HEIGHT+4;
         var lowW=22+Math.floor(Math.random()*8);
         var offset=18+Math.floor(Math.random()*12);
 
-        if(level===3){
+        if(isCaveLevel){
           // Level 3: 3-4 tier platform challenges
           var tier1Y=localGround-MAX_JUMP_HEIGHT+6;
           var tier2Y=localGround-MAX_JUMP_HEIGHT*1.5;
@@ -1487,8 +1549,8 @@ function generateWorld(upToX){
       invincPickups.push({x:invX,y:invY,bob:Math.random()*6.28});
       lastInvincX=invX;
     }
-    // Level 3: spawn torches for lighting
-    if(level===3&&Math.random()<0.15){
+    // Level 3/4: spawn torches for lighting
+    if((level===3||level===4)&&Math.random()<0.15){
       torches.push({x:segStart+20+Math.random()*60,flicker:Math.random()*6.28});
     }
   }
@@ -1524,6 +1586,14 @@ function resetGame(){
   playerLaserCooldown=0;
   scoreSubmitted=false;
   if(bossHud) bossHud.classList.remove("visible");
+  // Reset cutscene state
+  cutsceneDezTriggered=false;
+  cutsceneActive=false;
+  dez.active=false;
+  dialogueActive=false;
+  dialogueQueue=[];
+  if(cutsceneOverlay) cutsceneOverlay.classList.remove("active");
+  if(speechBubble) speechBubble.classList.remove("visible");
   initWorld();
   generateWorld(cam.x+W+400);
   buildHearts(player.lives,Math.max(MAX_LIVES,player.lives));
@@ -1563,10 +1633,11 @@ function spawnFlier(){
 
 function spawnDroid(){
   if(spawnPauseTimer>0) return;
-  var speedMult=level===3?getL3DifficultyMult():1;
+  var isCaveLevel=level===3||level===4;
+  var speedMult=isCaveLevel?getL3DifficultyMult()*(level===4?1.25:1):1;
   var dx=worldRight()+Math.random()*80;
   var gy=groundYAt(dx);
-  var fireInt=level===3?DROID_L3_FIRE_INTERVAL:DROID_FIRE_INTERVAL;
+  var fireInt=isCaveLevel?DROID_L3_FIRE_INTERVAL:DROID_FIRE_INTERVAL;
   droids.push({x:dx,y:gy,w:10,h:12,vx:DROID_SPEED*speedMult,patrolStart:dx,
     fireTimer:(1.5+Math.random()*fireInt)/speedMult,telegraphing:false,telegraphTimer:0});
 }
@@ -2037,8 +2108,6 @@ function bossDefeated(){
   if(bossHud) bossHud.classList.remove("visible");
   // Change SHOOT label back to DASH
   hudDashLabel.textContent="DASH";
-  // Resume enemy spawning
-  spawnPauseTimer=2.0; // Brief pause before enemies return
   // Victory particles
   for(var i=0;i<30;i++){
     particles.push({x:boss.x+(Math.random()-0.5)*60,y:boss.y-25+(Math.random()-0.5)*40,
@@ -2046,6 +2115,285 @@ function bossDefeated(){
       life:0.5+Math.random()*0.5,color:Math.random()<0.5?"#ff8844":"#ffcc44",size:2+Math.floor(Math.random()*2)});
   }
   playSfx("bossVictory");
+  // Trigger Dez cutscene after boss defeat
+  setTimeout(function(){triggerDezCutscene();},1500);
+}
+
+// === CUTSCENE SYSTEM ===
+var cutsceneOverlay,speechBubble,speechSpeaker,speechTextEl,speechContinue,levelBanner;
+function initCutsceneElements(){
+  cutsceneOverlay=document.getElementById("cutscene-overlay");
+  speechBubble=document.getElementById("speech-bubble");
+  speechSpeaker=document.getElementById("speech-speaker");
+  speechTextEl=document.getElementById("speech-text");
+  speechContinue=document.getElementById("speech-continue");
+  levelBanner=document.getElementById("level-banner");
+}
+
+function startCutscene(script){
+  cutsceneActive=true;
+  cutsceneClock=0;
+  cutsceneScript=script;
+  cutsceneStepIndex=0;
+  cutsceneCamLock.x=cam.x;
+  cutsceneTargetZoom=1.15;
+  player.invuln=999; // Invulnerable during cutscene
+  spawnPauseTimer=999;
+  // Clear projectiles for safety
+  projectiles=[];lasers=[];daggers=[];gooDrops=[];drops=[];bossProjectiles=[];
+  cutsceneOverlay.classList.add("active");
+}
+
+function endCutscene(){
+  cutsceneActive=false;
+  cutsceneTargetZoom=1.0;
+  cutsceneOverlay.classList.remove("active");
+  speechBubble.classList.remove("visible");
+  dialogueActive=false;
+  dialogueQueue=[];
+  player.invuln=INVULN_TIME*3; // Grace period after cutscene
+  spawnPauseTimer=2.0;
+  cutsceneGracePeriod=2.0;
+  dez.active=false;
+}
+
+function updateCutscene(dt){
+  if(!cutsceneActive) return;
+  cutsceneClock+=dt;
+
+  // Smooth zoom
+  var zoomSpeed=2.0;
+  if(cutsceneZoom<cutsceneTargetZoom) cutsceneZoom=Math.min(cutsceneTargetZoom,cutsceneZoom+zoomSpeed*dt);
+  else if(cutsceneZoom>cutsceneTargetZoom) cutsceneZoom=Math.max(cutsceneTargetZoom,cutsceneZoom-zoomSpeed*dt);
+
+  // Update dialogue typewriter
+  if(dialogueActive&&!dialogueWaitingForContinue){
+    dialogueCharTimer+=dt;
+    while(dialogueCharTimer>=DIALOGUE_CHAR_SPEED&&dialogueCharIndex<dialogueText.length){
+      dialogueCharTimer-=DIALOGUE_CHAR_SPEED;
+      dialogueCharIndex++;
+      dialogueDisplayed=dialogueText.substring(0,dialogueCharIndex);
+      speechTextEl.textContent=dialogueDisplayed;
+    }
+    if(dialogueCharIndex>=dialogueText.length){
+      dialogueWaitingForContinue=true;
+      speechContinue.style.display="block";
+    }
+  }
+
+  // Process script steps
+  while(cutsceneStepIndex<cutsceneScript.length){
+    var step=cutsceneScript[cutsceneStepIndex];
+    if(step.t!==undefined&&cutsceneClock<step.t) break;
+    if(step.waitDialogue&&dialogueActive) break;
+    if(step.action) step.action();
+    cutsceneStepIndex++;
+  }
+
+  // Update Dez
+  updateDez(dt);
+
+  // Check if cutscene is done
+  if(cutsceneStepIndex>=cutsceneScript.length&&!dialogueActive){
+    endCutscene();
+  }
+}
+
+function showDialogue(speaker,text){
+  dialogueActive=true;
+  dialogueSpeaker=speaker;
+  dialogueText=text;
+  dialogueDisplayed="";
+  dialogueCharIndex=0;
+  dialogueCharTimer=0;
+  dialogueWaitingForContinue=false;
+  speechSpeaker.textContent=speaker+":";
+  speechTextEl.textContent="";
+  speechContinue.style.display="none";
+  speechBubble.classList.add("visible");
+}
+
+function advanceDialogue(){
+  if(!dialogueActive) return false;
+  if(!dialogueWaitingForContinue){
+    // Skip to end of text
+    dialogueCharIndex=dialogueText.length;
+    dialogueDisplayed=dialogueText;
+    speechTextEl.textContent=dialogueDisplayed;
+    dialogueWaitingForContinue=true;
+    speechContinue.style.display="block";
+    return true;
+  }
+  // Close this dialogue
+  dialogueActive=false;
+  speechBubble.classList.remove("visible");
+  return true;
+}
+
+// === DEZ NPC ===
+function spawnDez(){
+  dez.active=true;
+  dez.x=cam.x+W+30;
+  dez.y=GROUND_Y;
+  dez.vx=-DEZ_SPEED;
+  dez.facing=-1;
+  dez.animFrame=0;
+  dez.shooting=false;
+  dez.shootTimer=0;
+  dez.shotsRemaining=5;
+  dez.lasers=[];
+}
+
+function updateDez(dt){
+  if(!dez.active) return;
+
+  // Movement
+  if(dez.vx!==0){
+    dez.x+=dez.vx*dt;
+    dez.animTimer+=dt;
+    if(dez.animTimer>0.12){dez.animTimer=0;dez.animFrame=(dez.animFrame+1)%4;}
+    // Stop when reached center-ish
+    if(dez.x<cam.x+W*0.55){
+      dez.vx=0;
+      dez.animFrame=0;
+    }
+  }
+
+  // Shooting
+  if(dez.shooting&&dez.shotsRemaining>0){
+    dez.shootTimer-=dt;
+    if(dez.shootTimer<=0){
+      dez.shootTimer=DEZ_SHOOT_COOLDOWN;
+      dez.shotsRemaining--;
+      // Fire laser
+      dez.lasers.push({x:dez.x-8,y:dez.y-10,vx:-DEZ_LASER_SPEED,life:1.5});
+      playSfx("playerLaser");
+      // Kill any enemies in view
+      if(enemies.length>0){var e=enemies.shift();spawnParticles(e.x,e.y,"#ff4444",10);}
+      if(droids.length>0){var d=droids.shift();spawnParticles(d.x,d.y-6,"#ff4444",10);}
+      if(spiders.length>0){var s=spiders.shift();spawnParticles(s.x,s.y,"#ff4444",10);}
+      if(bigworms.length>0){var b=bigworms.shift();spawnParticles(b.x,GROUND_Y-6,"#ff4444",10);}
+    }
+  }
+
+  // Update lasers
+  for(var i=dez.lasers.length-1;i>=0;i--){
+    var l=dez.lasers[i];
+    l.x+=l.vx*dt;
+    l.life-=dt;
+    if(l.life<=0||l.x<cam.x-20) dez.lasers.splice(i,1);
+  }
+}
+
+function drawDez(){
+  if(!dez.active) return;
+  var sx=wxf(dez.x),sy=dez.y;
+  var frame=dez.animFrame;
+
+  // Shadow
+  ctx.globalAlpha=0.3;ctx.fillStyle="#000";
+  ctx.beginPath();ctx.ellipse(F(sx),F(sy+2),6,2,0,0,6.29);ctx.fill();
+  ctx.globalAlpha=1;
+
+  // Dez - distinct human character (darker colors, red accents)
+  var skinTone="#d4a574";
+  var hairColor="#1a1a1a";
+  var jacketDark="#2a1a1a";
+  var jacketMid="#4a2a2a";
+  var jacketLight="#6a3a3a";
+  var pantsColor="#1a1a2a";
+  var accentRed="#cc3333";
+
+  // Leg animation
+  var lf=0,rf=0;
+  if(dez.vx!==0){
+    if(frame===1){lf=-2;rf=1;}else if(frame===3){lf=1;rf=-2;}
+  }
+
+  // Head (human)
+  ctx.fillStyle=skinTone;
+  ctx.beginPath();ctx.arc(F(sx),F(sy-16),5,0,6.29);ctx.fill();
+  // Hair
+  ctx.fillStyle=hairColor;
+  ctx.beginPath();ctx.arc(F(sx),F(sy-18),4,Math.PI,0);ctx.fill();
+  R(sx-4,sy-18,8,2,hairColor);
+  // Eyes
+  R(sx-3,sy-16,2,1,"#fff");R(sx+1,sy-16,2,1,"#fff");
+  R(sx-2,sy-16,1,1,"#222");R(sx+2,sy-16,1,1,"#222");
+
+  // Jacket/torso
+  R(sx-5,sy-12,10,9,jacketDark);
+  R(sx-4,sy-11,8,7,jacketMid);
+  R(sx-3,sy-10,6,5,jacketLight);
+  // Red stripe
+  R(sx-1,sy-11,2,6,accentRed);
+
+  // Arms
+  var ao=frame===1?-1:frame===3?1:0;
+  R(sx-7,sy-11+ao,3,7,jacketMid);
+  R(sx+4,sy-11-ao,3,7,jacketMid);
+  // Hands
+  R(sx-6,sy-5+ao,2,2,skinTone);
+  R(sx+4,sy-5-ao,2,2,skinTone);
+
+  // Gun in left hand
+  R(sx-10,sy-7,6,3,"#333");
+  R(sx-12,sy-6,3,1,accentRed);
+
+  // Pants/legs
+  R(sx-4,sy-4+lf,3,6,pantsColor);
+  R(sx+1,sy-4+rf,3,6,pantsColor);
+  // Boots
+  R(sx-5,sy+1+lf,4,2,"#222");
+  R(sx+1,sy+1+rf,4,2,"#222");
+
+  // Draw Dez's lasers
+  ctx.fillStyle="#ff3333";
+  for(var i=0;i<dez.lasers.length;i++){
+    var l=dez.lasers[i];
+    var lsx=wxf(l.x);
+    ctx.fillRect(F(lsx-6),F(l.y-1),12,3);
+    ctx.globalAlpha=0.5;
+    ctx.fillRect(F(lsx-8),F(l.y-2),16,5);
+    ctx.globalAlpha=1;
+  }
+}
+
+function showLevelBanner(text,duration){
+  levelBanner.textContent=text;
+  levelBanner.classList.add("visible");
+  setTimeout(function(){levelBanner.classList.remove("visible");},duration||2000);
+}
+
+// === DEZ CUTSCENE SCRIPT ===
+function triggerDezCutscene(){
+  if(cutsceneDezTriggered) return;
+  cutsceneDezTriggered=true;
+
+  var script=[
+    {t:0,action:function(){spawnDez();}},
+    {t:1.2,action:function(){dez.vx=0;dez.shooting=true;}},
+    {t:2.5,action:function(){dez.shooting=false;}},
+    {t:3.0,action:function(){showDialogue("DEZ","...I don't know buddy, you're not looking too good.");}},
+    {t:3.1,waitDialogue:true,action:function(){}},
+    {t:3.2,action:function(){showDialogue("DEZ","You've been running through hell.");}},
+    {t:3.3,waitDialogue:true,action:function(){}},
+    {t:3.4,action:function(){showDialogue("FREQ-BOT","*weak chirp*");}},
+    {t:3.5,waitDialogue:true,action:function(){}},
+    {t:3.6,action:function(){showDialogue("DEZ","I'm here. We rebuild.");}},
+    {t:3.7,waitDialogue:true,action:function(){}},
+    {t:4.0,action:function(){
+      cutsceneTargetZoom=1.0;
+      // Transition to Level 4
+      level=4;
+      playLevelMusic(4);
+      showLevelBanner("LEVEL 4: FORGE TUNNELS",2500);
+      hudLevel.textContent="LVL 4";
+      hudLevel.style.color="#ff6622";
+    }}
+  ];
+
+  startCutscene(script);
 }
 
 // === INPUT ===
@@ -2055,9 +2403,17 @@ function startGame(){initAudio();resetGame();state="playing";showScreen("playing
 document.addEventListener("keydown",function(e){
   if(keys[e.code]){e.preventDefault();return;}
   keys[e.code]=true;
+  // Cutscene dialogue advancement
+  if(cutsceneActive&&dialogueActive){
+    if(e.code==="Space"||e.code==="Enter"){
+      advanceDialogue();
+      e.preventDefault();
+      return;
+    }
+  }
   if(state==="title"){
     if(e.code==="Enter"||e.code==="Space") startGame();
-  } else if(state==="playing"){
+  } else if(state==="playing"&&!cutsceneActive){
     if(e.code==="ArrowLeft"||e.code==="KeyA") held.left=true;
     if(e.code==="ArrowRight"||e.code==="KeyD") held.right=true;
     if(e.code==="ArrowUp"||e.code==="KeyW"||e.code==="Space"){held.jump=true;player.jumpBufferTimer=JUMP_BUFFER_MS;}
@@ -2477,11 +2833,13 @@ function update(dt){
     }
   }
 
-  // Level 3 enemies (cave only: big worms, spiders, red droids - NO ships/fliers)
+  // Level 3/4 enemies (cave only: big worms, spiders, red droids - NO ships/fliers)
   // PROGRESSIVE DIFFICULTY: +10% every 200 distance past 1000
-  if(level===3){
+  // Level 4 (Forge Tunnels): +25% base difficulty
+  if(level===3||level===4){
     var distPast1000=Math.max(0,distance-LEVEL_3_THRESHOLD);
     var difficultyMult=1+Math.floor(distPast1000/200)*0.1; // 1.0, 1.1, 1.2, etc.
+    if(level===4) difficultyMult*=1.25; // Level 4 is 25% harder
     var spawnMult=1/difficultyMult; // Faster spawns = shorter timers
 
     bigwormTimer-=dt;
@@ -2702,9 +3060,10 @@ function update(dt){
     }
   }
 
-  // Droids (Level 2 and 3 - more aggressive in L3)
-  var droidFireInt=level===3?DROID_L3_FIRE_INTERVAL:DROID_FIRE_INTERVAL;
-  var maxLasersNow=level===3?MAX_LASERS_L3:MAX_LASERS;
+  // Droids (Level 2, 3, 4 - more aggressive in caves)
+  var isCaveLevel=level===3||level===4;
+  var droidFireInt=isCaveLevel?DROID_L3_FIRE_INTERVAL:DROID_FIRE_INTERVAL;
+  var maxLasersNow=isCaveLevel?MAX_LASERS_L3:MAX_LASERS;
   for(var dri=droids.length-1;dri>=0;dri--){
     var drd=droids[dri];
     drd.x+=drd.vx*dt;
@@ -3156,7 +3515,7 @@ function drawCaveCeiling(){
 
 // Cave darkness overlay with torch light pools (Level 3)
 function drawCaveOverlay(){
-  if(level!==3) return;
+  if(level!==3&&level!==4) return;
   // Overall cave darkness vignette
   ctx.globalAlpha=0.4;
   ctx.fillStyle="#000";
@@ -3221,7 +3580,7 @@ function drawSky(){
         var t2=(t-0.7)/0.3;
         r=F(50+t2*15);g=F(40+t2*15);b=F(70+t2*10);
       }
-    } else {
+    } else if(level===3){
       // Level 3 cave interior - dark rock background
       if(t<0.5){
         var t2=t/0.5;
@@ -3230,12 +3589,21 @@ function drawSky(){
         var t2=(t-0.5)/0.5;
         r=F(22+t2*8);g=F(16+t2*6);b=F(11+t2*5);
       }
+    } else {
+      // Level 4 Forge Tunnels - warmer with orange/red hints
+      if(t<0.5){
+        var t2=t/0.5;
+        r=F(18+t2*15);g=F(8+t2*6);b=F(4+t2*3);
+      } else {
+        var t2=(t-0.5)/0.5;
+        r=F(33+t2*10);g=F(14+t2*5);b=F(7+t2*3);
+      }
     }
     R(0,i*(GROUND_Y/bands),W,Math.ceil(GROUND_Y/bands)+1,"rgb("+r+","+g+","+b+")");
   }
 
-  // Stars (brighter in Level 2, none in Level 3 cave)
-  if(level!==3){
+  // Stars (brighter in Level 2, none in Level 3/4 caves)
+  if(level!==3&&level!==4){
     for(var si=0;si<stars.length;si++){
       var st=stars[si];
       var twinkle=Math.sin(shimmerOffset*2+st.s*5)*0.3+0.7;
@@ -3280,13 +3648,13 @@ function drawSky(){
     ctx.globalAlpha=0.35;ctx.fillStyle="#eeccff";
     ctx.beginPath();ctx.arc(40,25,5,0,6.29);ctx.fill();
     ctx.globalAlpha=1;
-  } else if(level===3){
-    // Level 3 cave interior - ant farm / cross-section style
+  } else if(level===3||level===4){
+    // Level 3/4 cave interior - ant farm / cross-section style
     drawCaveCeiling();
   }
 
   // Clouds (level-appropriate, none in cave)
-  if(level!==3){
+  if(level!==3&&level!==4){
     ctx.globalAlpha=0.04;
     var cx1=((shimmerOffset*3)%300)-40;
     var cx2=((shimmerOffset*2+120)%340)-50;
@@ -3461,14 +3829,15 @@ function drawNightDunes(){
   ctx.lineTo(W,GROUND_Y);ctx.fill();
 }
 
-// Level 3 cave background
+// Level 3/4 cave background
 function drawCaveBackground(){
-  if(level!==3) return;
+  if(level!==3&&level!==4) return;
+  var isForge=level===4;
   var scrollX,x,h,seed;
 
   // Layer 1: Far cave wall - jagged rocky silhouette
   scrollX=cam.x*0.01;
-  ctx.fillStyle="#1a100c";
+  ctx.fillStyle=isForge?"#251408":"#1a100c";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=6){
     seed=(x+scrollX)*0.5;
@@ -3478,7 +3847,7 @@ function drawCaveBackground(){
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
   // Darker depth
-  ctx.fillStyle="#0c0806";
+  ctx.fillStyle=isForge?"#120a04":"#0c0806";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=6){
     seed=(x+scrollX)*0.5;
@@ -3490,7 +3859,7 @@ function drawCaveBackground(){
 
   // Layer 2: Mid cave wall - more detail
   scrollX=cam.x*0.02;
-  ctx.fillStyle="#2a1810";
+  ctx.fillStyle=isForge?"#3a1c10":"#2a1810";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=4){
     seed=(x+scrollX)*0.7;
@@ -3499,7 +3868,7 @@ function drawCaveBackground(){
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
   // Shadow recesses
-  ctx.fillStyle="#100a06";
+  ctx.fillStyle=isForge?"#180c04":"#100a06";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=4){
     seed=(x+scrollX)*0.7;
@@ -3511,7 +3880,7 @@ function drawCaveBackground(){
 
   // Layer 3: Near rocky outcrops
   scrollX=cam.x*0.035;
-  ctx.fillStyle="#3a2418";
+  ctx.fillStyle=isForge?"#4a2818":"#3a2418";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=3){
     seed=(x+scrollX)*0.9;
@@ -3520,7 +3889,7 @@ function drawCaveBackground(){
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
   // Dark cracks
-  ctx.fillStyle="#140c08";
+  ctx.fillStyle=isForge?"#1c0e06":"#140c08";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=3){
     seed=(x+scrollX)*0.9;
@@ -3532,7 +3901,7 @@ function drawCaveBackground(){
 
   // Layer 4: Closest rock formations
   scrollX=cam.x*0.05;
-  ctx.fillStyle="#2a1a12";
+  ctx.fillStyle=isForge?"#3a2014":"#2a1a12";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=2){
     seed=(x+scrollX)*1.1;
@@ -3541,7 +3910,7 @@ function drawCaveBackground(){
   }
   ctx.lineTo(W,GROUND_Y);ctx.fill();
   // Deep shadows
-  ctx.fillStyle="#0a0604";
+  ctx.fillStyle=isForge?"#100802":"#0a0604";
   ctx.beginPath();ctx.moveTo(0,GROUND_Y);
   for(x=0;x<=W;x+=2){
     seed=(x+scrollX)*1.1;
@@ -3617,10 +3986,10 @@ function drawParallaxDunes(){
 }
 
 function drawGround(){
-  var cG=level===1?C_GROUND:level===2?C2_GROUND:C3_GROUND;
-  var cGD=level===1?C_GROUND_DARK:level===2?C2_GROUND_DARK:C3_GROUND_DARK;
-  var cGDP=level===1?C_GROUND_DEEPER:level===2?C2_GROUND_DEEPER:C3_GROUND_DEEPER;
-  var cGL=level===1?C_GROUND_LINE:level===2?C2_GROUND_LINE:C3_GROUND_LINE;
+  var cG=level===1?C_GROUND:level===2?C2_GROUND:level===4?C4_GROUND:C3_GROUND;
+  var cGD=level===1?C_GROUND_DARK:level===2?C2_GROUND_DARK:level===4?C4_GROUND_DARK:C3_GROUND_DARK;
+  var cGDP=level===1?C_GROUND_DEEPER:level===2?C2_GROUND_DEEPER:level===4?C4_GROUND_DEEPER:C3_GROUND_DEEPER;
+  var cGL=level===1?C_GROUND_LINE:level===2?C2_GROUND_LINE:level===4?C4_GROUND_LINE:C3_GROUND_LINE;
   R(0,GROUND_Y,W,H-GROUND_Y,cG);
   if(level===1){
     // Super Star Wars style ground - scrolls with world
@@ -5023,9 +5392,9 @@ function draw(){
   drawSandworms();drawEnemies();drawFliers();drawDroids();
   drawProjectiles();drawDrops();drawLasers();
   drawBigworms();drawDaggers();drawSpiders();drawGooDrops();
-  if(level===3) drawTorches();
+  if(level===3||level===4) drawTorches();
   drawBossArenaWalls();drawBoss();drawBossProjectiles();drawPlayerLasers();
-  drawRobot();drawParticles();drawScorePopups();
+  drawRobot();if(dez.active) drawDez();drawParticles();drawScorePopups();
   drawCaveOverlay();
 
   // Stomp flash
@@ -5184,7 +5553,13 @@ function draw(){
       ctx.fillText("LEVEL 3",W/2,H/2-4);
       ctx.fillStyle="#aa6633";
       ctx.font="8px monospace";
-      ctx.fillText("SAND CAVE - ENDLESS",W/2,H/2+10);
+      ctx.fillText("SAND CAVE",W/2,H/2+10);
+    } else if(level===4){
+      ctx.fillStyle="#ff6622";
+      ctx.fillText("LEVEL 4",W/2,H/2-4);
+      ctx.fillStyle="#cc4400";
+      ctx.font="8px monospace";
+      ctx.fillText("FORGE TUNNELS",W/2,H/2+10);
     }
     ctx.textAlign="left";
     ctx.globalAlpha=1;
@@ -5231,14 +5606,16 @@ function loop(ts){
   try{
     // Failsafe: if playing and no lives, force game over
     if(state==="playing"&&player.lives<=0){gameOver();}
-    update(dt);draw();
+    update(dt);
+    if(cutsceneActive) updateCutscene(dt);
+    draw();
   }catch(e){
     console.error("Game error:",e);
     if(state==="playing"){gameOver();}
   }
 }
 
-initWorld();showScreen("title");requestAnimationFrame(loop);
+initWorld();initCutsceneElements();showScreen("title");requestAnimationFrame(loop);
 })();
 </script>
 </body>
