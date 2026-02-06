@@ -1357,7 +1357,7 @@ var cutscenePowerCellPulse=0; // Power cell pulse animation
 // Post-boss run tracking
 var postBossActive=false;
 var postBossDistanceStart=0;
-var POST_BOSS_CUTSCENE_DIST=500; // Distance to run after boss before cutscene
+var POST_BOSS_CUTSCENE_DIST=5000; // Distance to run after boss before cutscene
 
 // Workbench/Upgrade system
 var workbench={x:0,visible:false};
@@ -2358,28 +2358,29 @@ function updateCutscene(dt){
   // Update close-up sparks and arcs
   if(cutsceneShotMode==="CLOSEUP"){
     cutscenePowerCellPulse+=dt*4;
-    // Spawn sparks
+    // Spawn sparks (world-space, near robot chest)
+    var spawnCX=player.x,spawnCY=player.y-6;
     if(Math.random()<0.3){
       cutsceneCloseupSparks.push({
-        x:W/2-20+Math.random()*40,
-        y:H/2-10+Math.random()*20,
-        vx:(Math.random()-0.5)*60,
-        vy:(Math.random()-0.5)*40-20,
+        x:spawnCX-6+Math.random()*12,
+        y:spawnCY-4+Math.random()*8,
+        vx:(Math.random()-0.5)*18,
+        vy:(Math.random()-0.5)*12-8,
         life:0.3+Math.random()*0.2
       });
     }
     // Update sparks
     for(var si=cutsceneCloseupSparks.length-1;si>=0;si--){
       var sp=cutsceneCloseupSparks[si];
-      sp.x+=sp.vx*dt;sp.y+=sp.vy*dt;sp.vy+=100*dt;
+      sp.x+=sp.vx*dt;sp.y+=sp.vy*dt;sp.vy+=30*dt;
       sp.life-=dt;
       if(sp.life<=0) cutsceneCloseupSparks.splice(si,1);
     }
-    // Spawn electrical arcs occasionally
+    // Spawn electrical arcs occasionally (world-space)
     if(Math.random()<0.08){
       cutsceneCloseupArcs.push({
-        x1:W/2-15+Math.random()*10,y1:H/2-5+Math.random()*10,
-        x2:W/2-15+Math.random()*30,y2:H/2-5+Math.random()*15,
+        x1:spawnCX-4+Math.random()*3,y1:spawnCY-2+Math.random()*4,
+        x2:spawnCX-4+Math.random()*10,y2:spawnCY-2+Math.random()*6,
         life:0.08+Math.random()*0.06
       });
     }
@@ -5159,7 +5160,7 @@ function drawPlatforms(){
 function drawRobot(){
   var sx=wxf(player.x),sy=player.y;
   var hasInvinc=player.invincTimer>0;
-  if(player.invuln>0&&player.powerTimer<=0&&!hasInvinc){
+  if(player.invuln>0&&player.powerTimer<=0&&!hasInvinc&&!cutsceneActive){
     var blinkRate=player.invuln>1?8:14;
     if(F(player.invuln*blinkRate)%2) return;
   }
@@ -6294,205 +6295,129 @@ function drawScorePopups(){
   ctx.textAlign="left";
 }
 
-// === CLOSE-UP SHOT RENDERING ===
-function drawCloseupShot(){
-  // Dark background with subtle texture
-  ctx.fillStyle="#0a0808";
-  ctx.fillRect(0,0,W,H);
+// === CLOSE-UP OVERLAY (drawn in zoomed world-space over actual robot) ===
+function drawCloseupOverlay(){
+  var sx=wxf(player.x),sy=player.y;
 
-  // Dim background glow (cave ambience)
-  var gradient=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.6);
-  gradient.addColorStop(0,"rgba(40,25,20,0.4)");
-  gradient.addColorStop(1,"rgba(10,8,8,0)");
-  ctx.fillStyle=gradient;
-  ctx.fillRect(0,0,W,H);
-
-  // Robot position (centered, larger than normal)
-  var rx=W/2,ry=H/2+15;
-  var scale=2.5; // Larger than normal
-
-  // === ROBOT BODY (detailed close-up) ===
-  // Helmet - larger with more detail
-  var blueDark="#1a4060",blueMid="#3080b0",blueLight="#50a0d0",blueBright="#70c0e8";
-  var outline="#0a1828",visor="#ff55aa",visorGlow="#ff88cc";
-
-  // Helmet base
-  ctx.fillStyle=outline;
-  ctx.beginPath();ctx.arc(rx,ry-35,18,0,6.29);ctx.fill();
-  ctx.fillStyle=blueDark;
-  ctx.beginPath();ctx.arc(rx,ry-35,16,0,6.29);ctx.fill();
-  ctx.fillStyle=blueMid;
-  ctx.beginPath();ctx.arc(rx,ry-35,14,0,6.29);ctx.fill();
-  ctx.fillStyle=blueLight;
-  ctx.beginPath();ctx.arc(rx,ry-38,11,0,3.14,true);ctx.fill();
-  ctx.fillStyle=blueBright;
-  ctx.beginPath();ctx.arc(rx,ry-40,8,0,3.14,true);ctx.fill();
-
-  // Visor (cracked)
-  R(rx-10,ry-40,24,10,outline);
-  R(rx-8,ry-38,20,7,"#992266");
-  R(rx-6,ry-37,16,5,visor);
-  // Crack lines on visor
-  ctx.strokeStyle="#441133";ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(rx-3,ry-40);ctx.lineTo(rx+2,ry-34);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(rx+5,ry-39);ctx.lineTo(rx+8,ry-35);ctx.stroke();
-
-  // Ear sensors (damaged)
-  R(rx-18,ry-38,5,8,outline);R(rx-16,ry-36,3,5,blueMid);
-  R(rx+13,ry-38,5,8,outline);R(rx+14,ry-36,3,5,blueMid);
-
-  // === TORSO WITH EXPOSED CAVITY ===
-  // Outer torso
-  R(rx-14,ry-22,28,22,outline);
-  R(rx-12,ry-20,24,18,blueDark);
-  R(rx-10,ry-18,20,14,blueMid);
-
+  // === EXPOSED CHEST CAVITY (drawn over robot torso) ===
   // Scorch marks around cavity
   ctx.globalAlpha=0.6;
-  ctx.fillStyle="#1a0a08";
-  R(rx-8,ry-16,16,12,"#1a0a08");
+  R(sx+2,sy-9,8,6,"#1a0a08");
   ctx.globalAlpha=0.4;
   ctx.fillStyle="#2a1510";
-  ctx.beginPath();ctx.arc(rx,ry-10,10,0,6.29);ctx.fill();
+  ctx.beginPath();ctx.arc(sx+6,sy-6,5,0,6.29);ctx.fill();
   ctx.globalAlpha=1;
 
-  // Exposed cavity (dark interior)
-  R(rx-7,ry-15,14,10,"#050304");
-  R(rx-6,ry-14,12,8,"#0a0606");
+  // Dark interior of cavity
+  R(sx+3,sy-8,6,5,"#050304");
+  R(sx+3.5,sy-7.5,5,4,"#0a0606");
 
   // === WIRES inside cavity ===
   var wireColors=["#cc4444","#44aa44","#4488cc","#ccaa44","#aa44aa","#44cccc"];
-  ctx.lineWidth=1;
-  // Draw 8 wires with different paths
-  for(var wi=0;wi<8;wi++){
-    var wc=wireColors[wi%wireColors.length];
-    ctx.strokeStyle=wc;
+  ctx.lineWidth=0.5;
+  for(var wi=0;wi<6;wi++){
+    ctx.strokeStyle=wireColors[wi];
     ctx.beginPath();
-    var wx1=rx-5+wi*1.5;
-    var wy1=ry-14;
-    var wx2=rx-6+(wi%4)*4;
-    var wy2=ry-6-Math.sin(wi)*2;
+    var wx1=sx+3.5+wi*0.8;
+    var wy1=sy-7.5;
+    // Deterministic curve using wire index
+    var bend=(wi%2===0?1:-1)*(1+wi*0.3);
+    var wx2=sx+3+(wi%3)*1.8;
+    var wy2=sy-4+Math.sin(wi*1.2)*0.8;
     ctx.moveTo(wx1,wy1);
-    // Curved wire
-    ctx.quadraticCurveTo(wx1+(Math.random()-0.5)*6,wy1+4,wx2,wy2);
+    ctx.quadraticCurveTo(wx1+bend,wy1+2,wx2,wy2);
     ctx.stroke();
-    // Some wires have frayed/dangling ends
-    if(wi%3===0){
+    // Dangling frayed ends on every other wire
+    if(wi%2===0){
       ctx.beginPath();
       ctx.moveTo(wx2,wy2);
-      ctx.lineTo(wx2+(Math.random()-0.5)*4,wy2+3+Math.random()*2);
+      ctx.lineTo(wx2+bend*0.5,wy2+1.5);
       ctx.stroke();
     }
   }
 
-  // Core (scorched, pulsing ember)
-  var corePulse=0.5+Math.sin(shimmerOffset*5)*0.3;
-  ctx.globalAlpha=0.7;
-  ctx.fillStyle="#331111";
-  ctx.beginPath();ctx.arc(rx,ry-10,4,0,6.29);ctx.fill();
-  ctx.globalAlpha=corePulse;
-  ctx.fillStyle="#ff4422";
-  ctx.beginPath();ctx.arc(rx,ry-10,3,0,6.29);ctx.fill();
-  ctx.globalAlpha=corePulse*0.6;
-  ctx.fillStyle="#ffaa44";
-  ctx.beginPath();ctx.arc(rx,ry-10,2,0,6.29);ctx.fill();
+  // === DEPLETED POWER CELL (dim pulsing glow + cracks) ===
+  var cellX=sx+6,cellY=sy-6;
+  var cellPulse=0.3+Math.sin(cutscenePowerCellPulse)*0.15;
+
+  // Dim halo
+  ctx.globalAlpha=0.2*cellPulse;
+  ctx.fillStyle="#ff55aa";
+  ctx.beginPath();ctx.arc(cellX,cellY,3,0,6.29);ctx.fill();
   ctx.globalAlpha=1;
 
-  // === SPARKS ===
+  // Cell body
+  R(cellX-1.5,cellY-2.5,3,5,"#222233");
+  R(cellX-1,cellY-2,2,4,"#334455");
+
+  // Crack lines
+  ctx.strokeStyle="#111122";ctx.lineWidth=0.3;
+  ctx.beginPath();ctx.moveTo(cellX-0.5,cellY-2);ctx.lineTo(cellX+0.5,cellY+1.5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cellX+0.7,cellY-1.5);ctx.lineTo(cellX-0.3,cellY+0.8);ctx.stroke();
+
+  // Inner glow (dim, depleted)
+  ctx.globalAlpha=cellPulse;
+  R(cellX-0.5,cellY-1.5,1,3,"#ff55aa");
+  ctx.globalAlpha=cellPulse*0.6;
+  R(cellX-0.3,cellY-1,0.6,2,"#ff88cc");
+  ctx.globalAlpha=1;
+
+  // === REMOVED FRONT PLATE on ground ===
+  var plateX=sx-3,plateY=player.y+1;
+  R(plateX,plateY,5,2,"#1a4060");
+  R(plateX+0.5,plateY+0.3,4,1.4,"#3080b0");
+  // Plate edge highlight
+  ctx.globalAlpha=0.5;
+  R(plateX+0.5,plateY,4,0.4,"#50a0d0");
+  ctx.globalAlpha=1;
+
+  // === SPARKS (world-space) ===
   for(var si=0;si<cutsceneCloseupSparks.length;si++){
     var sp=cutsceneCloseupSparks[si];
     ctx.globalAlpha=sp.life*3;
     ctx.fillStyle="#ffcc44";
-    ctx.beginPath();ctx.arc(sp.x,sp.y,1,0,6.29);ctx.fill();
+    ctx.beginPath();ctx.arc(wxf(sp.x),sp.y,0.4,0,6.29);ctx.fill();
     ctx.fillStyle="#ffffff";
-    ctx.beginPath();ctx.arc(sp.x,sp.y,0.5,0,6.29);ctx.fill();
+    ctx.beginPath();ctx.arc(wxf(sp.x),sp.y,0.2,0,6.29);ctx.fill();
   }
   ctx.globalAlpha=1;
 
-  // === ELECTRICAL ARCS ===
+  // === ELECTRICAL ARCS (world-space) ===
   for(var ai=0;ai<cutsceneCloseupArcs.length;ai++){
     var arc=cutsceneCloseupArcs[ai];
     ctx.strokeStyle="#88ccff";
-    ctx.lineWidth=1;
+    ctx.lineWidth=0.3;
     ctx.globalAlpha=0.8;
     ctx.beginPath();
-    ctx.moveTo(arc.x1,arc.y1);
-    // Jagged arc
-    var midX=(arc.x1+arc.x2)/2+(Math.random()-0.5)*8;
-    var midY=(arc.y1+arc.y2)/2+(Math.random()-0.5)*6;
+    ctx.moveTo(wxf(arc.x1),arc.y1);
+    var midX=(wxf(arc.x1)+wxf(arc.x2))/2+(Math.sin(shimmerOffset*20+ai)*2);
+    var midY=(arc.y1+arc.y2)/2+(Math.cos(shimmerOffset*20+ai)*1.5);
     ctx.lineTo(midX,midY);
-    ctx.lineTo(arc.x2,arc.y2);
+    ctx.lineTo(wxf(arc.x2),arc.y2);
     ctx.stroke();
     // Glow
     ctx.globalAlpha=0.3;
     ctx.strokeStyle="#aaeeff";
-    ctx.lineWidth=3;
+    ctx.lineWidth=0.8;
     ctx.stroke();
   }
   ctx.globalAlpha=1;
   ctx.lineWidth=1;
 
-  // === CRACKED POWER CELL (bottom right, in "Dez's hand" area) ===
-  var cellX=rx+50,cellY=ry+10;
-  var cellPulse=0.7+Math.sin(cutscenePowerCellPulse)*0.3;
-  var cellScale=1+Math.sin(cutscenePowerCellPulse*0.5)*0.1;
-
-  // Cell glow halo
-  ctx.globalAlpha=0.3*cellPulse;
-  ctx.fillStyle="#ff55aa";
-  ctx.beginPath();ctx.arc(cellX,cellY,12*cellScale,0,6.29);ctx.fill();
-  ctx.globalAlpha=1;
-
-  // Cell body (cylinder shape)
-  R(cellX-4*cellScale,cellY-8*cellScale,8*cellScale,16*cellScale,"#222233");
-  R(cellX-3*cellScale,cellY-7*cellScale,6*cellScale,14*cellScale,"#334455");
-
-  // Crack lines
-  ctx.strokeStyle="#111122";ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(cellX-2,cellY-6);ctx.lineTo(cellX+1,cellY+4);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cellX+2,cellY-4);ctx.lineTo(cellX-1,cellY+2);ctx.stroke();
-
-  // Inner glow
-  ctx.globalAlpha=cellPulse;
-  R(cellX-2*cellScale,cellY-5*cellScale,4*cellScale,10*cellScale,visor);
-  ctx.globalAlpha=cellPulse*0.8;
-  R(cellX-1*cellScale,cellY-4*cellScale,2*cellScale,8*cellScale,visorGlow);
-  ctx.globalAlpha=1;
-
-  // Floating motes around cell
-  for(var mi=0;mi<4;mi++){
-    var moteAngle=shimmerOffset*2+mi*1.57;
-    var moteR=8+Math.sin(shimmerOffset*3+mi)*3;
-    var moteX=cellX+Math.cos(moteAngle)*moteR;
-    var moteY=cellY+Math.sin(moteAngle)*moteR*0.6;
-    ctx.globalAlpha=0.4+Math.sin(shimmerOffset*5+mi)*0.2;
-    ctx.fillStyle="#ff88cc";
-    ctx.beginPath();ctx.arc(moteX,moteY,1,0,6.29);ctx.fill();
-  }
-  ctx.globalAlpha=1;
-
-  // === REPAIR ACTION (wrench/tool spark) ===
+  // === REPAIR ACTION (wrench/tool near robot) ===
   if(cutsceneRepairAction){
-    var toolX=rx-30,toolY=ry-5;
+    var toolX=sx-2,toolY=sy-5;
     // Wrench shape
-    R(toolX,toolY,12,3,"#667788");
-    R(toolX-3,toolY-2,4,7,"#556677");
-    R(toolX+10,toolY-2,4,7,"#556677");
-    // Tool sparks (clearly repair, not damage)
+    R(toolX,toolY,4,1,"#667788");
+    R(toolX-1,toolY-0.5,1.5,2,"#556677");
+    R(toolX+3,toolY-0.5,1.5,2,"#556677");
+    // Tool sparks
     var repairSparkPhase=Math.floor(shimmerOffset*12)%3;
     if(repairSparkPhase===0){
       ctx.fillStyle="#ffcc44";
-      R(toolX+6,toolY-3,2,2,"#ffcc44");
-      R(toolX+8,toolY-5,1,1,"#ffffff");
+      R(toolX+2,toolY-1,0.6,0.6,"#ffcc44");
+      R(toolX+2.8,toolY-1.6,0.3,0.3,"#ffffff");
     }
-  }
-
-  // === HARD CUT FLASH ===
-  if(cutsceneCloseupFlash>0){
-    ctx.globalAlpha=cutsceneCloseupFlash*0.8;
-    ctx.fillStyle="#000000";
-    ctx.fillRect(0,0,W,H);
-    ctx.globalAlpha=1;
   }
 }
 
@@ -6501,9 +6426,50 @@ function draw(){
   if(shakeTimer>0&&!cutsceneActive) ctx.translate(F((Math.random()-0.5)*4),F((Math.random()-0.5)*4));
   ctx.font="5px monospace";
 
-  // === CLOSE-UP SHOT MODE ===
+  // === CLOSE-UP SHOT MODE (zoom into actual game scene) ===
   if(cutsceneShotMode==="CLOSEUP"){
-    drawCloseupShot();
+    // Dark cinematic background
+    ctx.fillStyle="#0a0808";
+    ctx.fillRect(0,0,W,H);
+    // Ambient glow
+    var ambGrad=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.6);
+    ambGrad.addColorStop(0,"rgba(40,25,20,0.3)");
+    ambGrad.addColorStop(1,"rgba(10,8,8,0)");
+    ctx.fillStyle=ambGrad;
+    ctx.fillRect(0,0,W,H);
+
+    // Zoom camera: 3.5x centered on robot upper body, offset right to show Dez
+    var focusX=wxf(player.x)+5;
+    var focusY=player.y-8;
+    ctx.save();
+    ctx.translate(W/2,H/2);
+    ctx.scale(3.5,3.5);
+    ctx.translate(-focusX,-focusY);
+
+    // Draw game elements inside zoomed context
+    drawGround();
+    drawWorkbench();
+    drawRobot();
+    drawCloseupOverlay();
+    drawDez();
+
+    ctx.restore();
+
+    // Vignette overlay (screen space)
+    var vigGrad=ctx.createRadialGradient(W/2,H/2,W*0.25,W/2,H/2,W*0.55);
+    vigGrad.addColorStop(0,"rgba(0,0,0,0)");
+    vigGrad.addColorStop(1,"rgba(0,0,0,0.7)");
+    ctx.fillStyle=vigGrad;
+    ctx.fillRect(0,0,W,H);
+
+    // Hard cut flash (screen space)
+    if(cutsceneCloseupFlash>0){
+      ctx.globalAlpha=cutsceneCloseupFlash*0.8;
+      ctx.fillStyle="#000000";
+      ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha=1;
+    }
+
     ctx.restore();
     return;
   }
