@@ -403,26 +403,26 @@ var DROID_FIRE_TELEGRAPH=0.25;
 var LASER_SPEED=70;
 var MAX_LASERS=2;
 
-// Level 3 droids - VERY aggressive
-var DROID_L3_FIRE_INTERVAL=1.0;  // Faster firing (was 1.8)
-var MAX_LASERS_L3=6;             // More lasers on screen (was 4)
+// Level 3 droids - aggressive but fair
+var DROID_L3_FIRE_INTERVAL=1.4;  // Eased back (was 1.0)
+var MAX_LASERS_L3=4;             // Fewer lasers on screen (was 6)
 
-// Level 3 enemies - harder
+// Level 3 enemies
 // Big Worm — larger sandworm that shoots daggers
-var BIGWORM_SPEED=85;            // Faster (was 70)
+var BIGWORM_SPEED=70;            // Eased back (was 85)
 var BIGWORM_LENGTH=36;
-var BIGWORM_FIRE_INTERVAL=1.5;   // Faster firing (was 2.0)
+var BIGWORM_FIRE_INTERVAL=1.8;   // Eased back (was 1.5)
 var BIGWORM_FIRE_TELEGRAPH=0.25;
-var DAGGER_SPEED=110;            // Faster daggers (was 90)
-var MAX_DAGGERS=6;               // More daggers (was 4)
+var DAGGER_SPEED=95;             // Eased back (was 110)
+var MAX_DAGGERS=4;               // Fewer daggers (was 6)
 var STOMP_BIGWORM_SCORE=15;
 
-// Spider — ceiling crawler that drops toxic goo (harder in L3)
-var SPIDER_SPEED=40;             // Faster (was 30)
-var SPIDER_DROP_INTERVAL=1.8;    // Faster goo drops (was 2.5)
+// Spider — ceiling crawler that drops toxic goo
+var SPIDER_SPEED=32;             // Eased back (was 40)
+var SPIDER_DROP_INTERVAL=2.2;    // Eased back (was 1.8)
 var SPIDER_DROP_TELEGRAPH=0.15;
-var GOO_GRAVITY=220;             // Faster falling (was 180)
-var MAX_GOO=5;                   // More goo (was 3)
+var GOO_GRAVITY=190;             // Eased back (was 220)
+var MAX_GOO=3;                   // Fewer goo (was 5)
 var STOMP_SPIDER_SCORE=8;
 
 // === BOSS: Giant Cave Worm ===
@@ -3992,7 +3992,7 @@ function update(dt){
   // Level 3/4 enemies (cave only: big worms, spiders, red droids - NO ships/fliers)
   // Level 4 is slightly harder than Level 3 but spawns 25% fewer enemies
   if(level===3||level===4){
-    var spawnMult=level===4?1.25:1; // Level 4: 25% longer between spawns (fewer enemies)
+    var spawnMult=level===4?1.6:1.18; // Level 3: 15% fewer enemies, Level 4: ~40% fewer
 
     bigwormTimer-=spawnDt;
     if(bigwormTimer<=0){
