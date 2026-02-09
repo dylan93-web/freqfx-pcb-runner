@@ -1671,7 +1671,7 @@ var cutscenePowerCellPulse=0; // Power cell pulse animation
 // Post-boss run tracking
 var postBossActive=false;
 var postBossDistanceStart=0;
-var POST_BOSS_CUTSCENE_DIST=5000; // Distance to run after boss before cutscene
+var POST_BOSS_CUTSCENE_DIST=500; // Distance to run after boss before cutscene
 
 // Workbench/Upgrade system
 var workbench={x:0,visible:false};
@@ -3311,6 +3311,23 @@ function drawCutsceneTargets(){
       // Thread to ceiling
       ctx.strokeStyle="#666";
       ctx.beginPath();ctx.moveTo(sx,sy-5);ctx.lineTo(sx,0);ctx.stroke();
+    } else if(t.type==="bigworm"){
+      // Ground bigworm - segmented body
+      var segments=6,segLen=6;
+      for(var si=0;si<segments;si++){
+        var segX=sx+(si*segLen-segments*segLen/2);
+        var segH=5+Math.sin((si/segments)*Math.PI)*5;
+        var cr=Math.max(100-si*8,40),cg=Math.max(60-si*6,25),cb=Math.max(45-si*5,20);
+        ctx.fillStyle="rgb("+cr+","+cg+","+cb+")";
+        ctx.beginPath();ctx.ellipse(F(segX),GROUND_Y,segLen/2+1,segH,0,Math.PI,0);ctx.fill();
+      }
+      // Head
+      var headX=sx-segments*segLen/2;
+      ctx.fillStyle=C_BIGWORM;
+      ctx.beginPath();ctx.arc(F(headX),GROUND_Y-5,5,0,6.29);ctx.fill();
+      R(F(headX)-2,GROUND_Y-7,2,2,C_BIGWORM_EYE);
+      R(F(headX)-5,GROUND_Y-3,2,2,C_BIGWORM_DARK);
+      R(F(headX)+3,GROUND_Y-3,2,2,C_BIGWORM_DARK);
     } else {
       // Droid on ground
       ctx.fillStyle="#cc3333";
@@ -3332,11 +3349,23 @@ var cutsceneTargets=[];
 
 function spawnCutsceneEnemies(){
   cutsceneTargets=[];
-  // Spread enemies from right to left - Dez runs right to left shooting
-  var baseX=cam.x;
-  cutsceneTargets.push({type:"spider",x:baseX+W-40,y:22,alive:true}); // Ceiling spider 1 (far right, first shot)
-  cutsceneTargets.push({type:"droid",x:baseX+W/2+20,y:GROUND_Y-8,alive:true}); // Ground droid (middle)
-  cutsceneTargets.push({type:"spider",x:baseX+W/2-40,y:18,alive:true}); // Ceiling spider 2 (left of center)
+  var px=player.x; // Surround the player
+  // Wave 1 (t=0.3): spider above + droid left
+  cutsceneTargets.push({type:"spider",x:px,y:18,alive:false,wave:1});           // 0: spider directly above player
+  cutsceneTargets.push({type:"droid",x:px-50,y:GROUND_Y-8,alive:false,wave:1}); // 1: droid left
+  // Wave 2 (t=0.6): bigworm right + spider right + droid right
+  cutsceneTargets.push({type:"bigworm",x:px+65,y:GROUND_Y,alive:false,wave:2}); // 2: bigworm right
+  cutsceneTargets.push({type:"spider",x:px+45,y:22,alive:false,wave:2});        // 3: spider right
+  cutsceneTargets.push({type:"droid",x:px+40,y:GROUND_Y-8,alive:false,wave:2}); // 4: droid right
+  // Wave 3 (t=0.9): bigworm left + spider far right
+  cutsceneTargets.push({type:"bigworm",x:px-70,y:GROUND_Y,alive:false,wave:3}); // 5: bigworm left
+  cutsceneTargets.push({type:"spider",x:px+90,y:15,alive:false,wave:3});        // 6: spider far right
+}
+
+function activateCutsceneWave(waveNum){
+  for(var i=0;i<cutsceneTargets.length;i++){
+    if(cutsceneTargets[i].wave===waveNum) cutsceneTargets[i].alive=true;
+  }
 }
 
 function dezShoot(targetIndex){
@@ -3379,23 +3408,31 @@ function triggerDezCutscene(){
   workbench.visible=true;
 
   var script=[
-    // Brief freeze - dramatic pause, enemies already spawned
-    {t:0.8,action:function(){spawnDez();}}, // Dez runs in from the RIGHT
-    // Dez shoots while running left - boom boom boom
-    {t:1.1,action:function(){dezShoot(0);}}, // Spider 1 (far right)
-    {t:1.4,action:function(){dezShoot(1);}}, // Droid (middle)
-    {t:1.7,action:function(){dezShoot(2);}}, // Spider 2 (left)
-    {t:2.0,action:function(){dez.vx=0;cutsceneTargets=[];}}, // Dez stops near player
-    {t:2.5,action:function(){showDialogue("DEZ","Hey buddy, you're not looking too good.",dez.x,dez.y-25);}},
-    {t:2.6,waitDialogue:true,action:function(){}},
-    {t:2.7,action:function(){showDialogue("FREQ-BOT","*weak chirp*",player.x,player.y-30);}},
-    {t:2.8,waitDialogue:true,action:function(){}},
-    {t:2.9,action:function(){showDialogue("DEZ","It's okay. I'm here.",dez.x,dez.y-25);}},
-    {t:3.0,waitDialogue:true,action:function(){}},
-    {t:3.1,action:function(){showDialogue("DEZ","I'm going to repair you.",dez.x,dez.y-25);}},
-    {t:3.2,waitDialogue:true,action:function(){}},
+    // Enemies spawn in waves — "closing in" feel
+    {t:0.3,action:function(){activateCutsceneWave(1);}},  // Wave 1: spider above + droid left
+    {t:0.6,action:function(){activateCutsceneWave(2);}},  // Wave 2: bigworm right + spider right + droid right
+    {t:0.9,action:function(){activateCutsceneWave(3);}},  // Wave 3: bigworm left + spider far right
+    // Dramatic pause — player fully surrounded
+    {t:2.0,action:function(){spawnDez();}},                // Dez runs in from the RIGHT
+    // Dez rapid-fires through all 7 targets
+    {t:2.3,action:function(){dezShoot(0);}},  // Spider above player
+    {t:2.45,action:function(){dezShoot(1);}}, // Droid left
+    {t:2.6,action:function(){dezShoot(2);}},  // Bigworm right
+    {t:2.7,action:function(){dezShoot(3);}},  // Spider right
+    {t:2.8,action:function(){dezShoot(4);}},  // Droid right
+    {t:2.9,action:function(){dezShoot(5);}},  // Bigworm left
+    {t:3.0,action:function(){dezShoot(6);}},  // Spider far right
+    {t:3.3,action:function(){dez.vx=0;cutsceneTargets=[];}}, // Dez stops, all clear
+    {t:3.8,action:function(){showDialogue("DEZ","Hey buddy, you're not looking too good.",dez.x,dez.y-25);}},
+    {t:3.9,waitDialogue:true,action:function(){}},
+    {t:4.0,action:function(){showDialogue("FREQ-BOT","*weak chirp*",player.x,player.y-30);}},
+    {t:4.1,waitDialogue:true,action:function(){}},
+    {t:4.2,action:function(){showDialogue("DEZ","It's okay. I'm here.",dez.x,dez.y-25);}},
+    {t:4.3,waitDialogue:true,action:function(){}},
+    {t:4.4,action:function(){showDialogue("DEZ","I'm going to repair you.",dez.x,dez.y-25);}},
+    {t:4.5,waitDialogue:true,action:function(){}},
     // Walk to workbench together
-    {t:3.5,action:function(){
+    {t:4.8,action:function(){
       dez.facing=1;
       player.facing=1;
       cutsceneWalkingToBench=true; // Movement handled in updateCutscene
@@ -3494,6 +3531,17 @@ document.addEventListener("keydown",function(e){
       cutsceneActive=false;
       enemies=[];droids=[];spiders=[];bigworms=[];
       spawnBoss();
+    }
+    // DEBUG: Press V to simulate post-boss state (cutscene triggers after ~50 distance)
+    if(isLocalDebug&&e.code==="KeyV"){
+      level=3;
+      bossSpawned=true;
+      boss.active=false;
+      boss.defeated=true;
+      cutsceneDezTriggered=false;
+      postBossActive=true;
+      postBossDistanceStart=player.x-450; // Only ~50 more distance needed
+      enemies=[];droids=[];spiders=[];bigworms=[];
     }
   } else if(state==="paused"){
     if(e.code==="Enter"){state="playing";showScreen("playing");}
@@ -3689,6 +3737,17 @@ function update(dt){
     player.vy=0;
     player.y=GROUND_Y;
     player.onGround=true;
+    // Still update particles + popups so explosions/muzzle flashes fade out
+    for(var m=particles.length-1;m>=0;m--){
+      var pt=particles[m];
+      pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vy+=150*dt;pt.life-=dt;
+      if(pt.life<=0) particles.splice(m,1);
+    }
+    for(var sp=scorePopups.length-1;sp>=0;sp--){
+      scorePopups[sp].y-=30*dt;scorePopups[sp].timer-=dt;
+      if(scorePopups[sp].timer<=0) scorePopups.splice(sp,1);
+    }
+    if(shakeTimer>0) shakeTimer=Math.max(0,shakeTimer-dt);
     return; // Skip all other updates during cutscene
   }
 
