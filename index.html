@@ -404,25 +404,25 @@ var LASER_SPEED=70;
 var MAX_LASERS=2;
 
 // Level 3 droids - aggressive but fair
-var DROID_L3_FIRE_INTERVAL=1.4;  // Eased back (was 1.0)
-var MAX_LASERS_L3=4;             // Fewer lasers on screen (was 6)
+var DROID_L3_FIRE_INTERVAL=1.7;  // Eased 20% (was 1.4)
+var MAX_LASERS_L3=3;             // Fewer lasers (was 4)
 
 // Level 3 enemies
 // Big Worm — larger sandworm that shoots daggers
-var BIGWORM_SPEED=70;            // Eased back (was 85)
+var BIGWORM_SPEED=56;            // Eased 20% (was 70)
 var BIGWORM_LENGTH=36;
-var BIGWORM_FIRE_INTERVAL=1.8;   // Eased back (was 1.5)
+var BIGWORM_FIRE_INTERVAL=2.2;   // Eased 20% (was 1.8)
 var BIGWORM_FIRE_TELEGRAPH=0.25;
-var DAGGER_SPEED=95;             // Eased back (was 110)
-var MAX_DAGGERS=4;               // Fewer daggers (was 6)
+var DAGGER_SPEED=76;             // Eased 20% (was 95)
+var MAX_DAGGERS=3;               // Fewer daggers (was 4)
 var STOMP_BIGWORM_SCORE=15;
 
 // Spider — ceiling crawler that drops toxic goo
-var SPIDER_SPEED=32;             // Eased back (was 40)
-var SPIDER_DROP_INTERVAL=2.2;    // Eased back (was 1.8)
+var SPIDER_SPEED=26;             // Eased 20% (was 32)
+var SPIDER_DROP_INTERVAL=2.6;    // Eased 20% (was 2.2)
 var SPIDER_DROP_TELEGRAPH=0.15;
-var GOO_GRAVITY=190;             // Eased back (was 220)
-var MAX_GOO=3;                   // Fewer goo (was 5)
+var GOO_GRAVITY=150;             // Eased 20% (was 190)
+var MAX_GOO=2;                   // Fewer goo (was 3)
 var STOMP_SPIDER_SCORE=8;
 
 // === BOSS: Giant Cave Worm ===
@@ -2058,8 +2058,7 @@ function spawnDroid(){
 
 // Level 3 enemies - speed scales with distance
 function getL3DifficultyMult(){
-  var distPast1000=Math.max(0,distance-LEVEL_3_THRESHOLD);
-  return 1+Math.floor(distPast1000/200)*0.1; // +10% every 200 dist
+  return 1; // No difficulty ramp for L3/L4
 }
 
 function spawnBigworm(){
@@ -2082,7 +2081,7 @@ function spawnDrillbot(){
   if(spawnPauseTimer>0||level!==4) return;
   // Drill robot that runs across the ground
   var sx=cam.x+W+30+Math.random()*40;
-  var speed=110+Math.random()*40; // Moderate speed
+  var speed=99+Math.random()*36; // Eased 10% (was 110+rand*40)
   drillbots.push({
     x:sx,y:GROUND_Y,
     vx:-speed, // Running left fast
@@ -3992,7 +3991,7 @@ function update(dt){
   // Level 3/4 enemies (cave only: big worms, spiders, red droids - NO ships/fliers)
   // Level 4 is slightly harder than Level 3 but spawns 25% fewer enemies
   if(level===3||level===4){
-    var spawnMult=level===4?1.6:1.18; // Level 3: 15% fewer enemies, Level 4: ~40% fewer
+    var spawnMult=level===4?1.76:1.42; // Level 3: ~30% fewer enemies, Level 4: ~43% fewer
 
     bigwormTimer-=spawnDt;
     if(bigwormTimer<=0){
