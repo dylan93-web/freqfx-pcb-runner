@@ -1927,7 +1927,7 @@ function generateWorld(upToX){
       lastHeartX=hpx;
     }
     // Invincibility power-up: ONCE per level only, on upper platform
-    if(!invincSpawned[level]&&(segStart-lastInvincX)>INVINC_MIN_DIST&&Math.random()<0.15){
+    if(!invincSpawned[level]&&invincPickups.length===0&&(segStart-lastInvincX)>INVINC_MIN_DIST&&Math.random()<0.15){
       // Set flag FIRST to prevent any duplicate spawns
       invincSpawned[level]=true;
       var invX=segStart+25+Math.random()*35;
@@ -3289,6 +3289,9 @@ function selectUpgrade(type){
     // Power cells last 50% longer - handled in pickup logic
     player.powerTimer=3.0; // Start with some power as bonus
   }
+
+  // Fresh start after upgrade: full health
+  player.lives=MAX_LIVES;
 
   // Transition to Level 4
   cutsceneRobotBeatUp=false;
